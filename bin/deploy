@@ -15,6 +15,11 @@ if [ "$before" = "$after" ]; then
   exit 0
 fi
 
-bundle install --quiet
+# Use mise's Ruby when installed for this user; gems in vendor/bundle if present
+BUNDLE="bundle"
+[ -x "$HOME/.local/bin/mise" ] && BUNDLE="$HOME/.local/bin/mise exec -- bundle"
+[ -d vendor/bundle ] && export BUNDLE_PATH=vendor/bundle
+
+$BUNDLE install --quiet
 sudo -n systemctl restart csp-collector
 echo "Deployed $before -> $after"
