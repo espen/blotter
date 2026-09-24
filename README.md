@@ -1,3 +1,5 @@
+<img src="public/logo.svg" width="88" alt="">
+
 # Blotter
 
 *A quiet log of your site's CSP violations.*
