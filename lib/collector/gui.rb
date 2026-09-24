@@ -2,8 +2,8 @@ require "sinatra/base"
 require "rack/protection"
 
 module Collector
-  # Internal GUI. Bind to the WireGuard interface only; basic auth at the
-  # Caddy layer is the second factor. All output escaped (erubi escape_html),
+  # Internal GUI, mounted at /admin behind basic auth (see config.ru).
+  # All output escaped (erubi escape_html),
   # CSRF on every form. Rule values are never taken from the request — only
   # row IDs; values are re-extracted server-side from stored reports.
   class GUI < Sinatra::Base
@@ -20,13 +20,13 @@ module Collector
     # password on every request — only ever expose the GUI over HTTPS.
     gui_password = Collector.config["gui_password"].to_s
     unless gui_password.empty?
-      use Rack::Auth::Basic, "CSP Collector" do |_user, pass|
+      use Rack::Auth::Basic, "Blotter" do |_user, pass|
         Rack::Utils.secure_compare(gui_password, pass.to_s)
       end
     end
 
     use Rack::Session::Cookie,
-        key: "csp_collector",
+        key: "blotter",
         secret: Collector.config.fetch("session_secret"),
         same_site: :strict,
         http_only: true

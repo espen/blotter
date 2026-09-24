@@ -1,8 +1,8 @@
 #!/bin/sh
 # Deploy the latest commit. Run on the server, or from anywhere:
-#   ssh <host> /opt/csp-collector/bin/deploy
+#   ssh <host> /opt/blotter/bin/deploy
 # Requires a sudoers rule so the app user may restart the service:
-#   cspcollector ALL=(root) NOPASSWD: /usr/bin/systemctl restart csp-collector
+#   cspcollector ALL=(root) NOPASSWD: /usr/bin/systemctl restart blotter
 set -e
 cd "$(dirname "$0")/.."
 
@@ -21,5 +21,5 @@ BUNDLE="bundle"
 [ -d vendor/bundle ] && export BUNDLE_PATH=vendor/bundle
 
 $BUNDLE install --quiet
-sudo -n systemctl restart csp-collector
+sudo -n systemctl restart blotter
 echo "Deployed $before -> $after"

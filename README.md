@@ -1,4 +1,6 @@
-# csp-collector
+# Blotter
+
+*A quiet log of your site's CSP violations.*
 
 A small self-hosted collector for CSP violation reports (and any other
 [Reporting API](https://developer.mozilla.org/en-US/docs/Web/API/Reporting_API)
@@ -104,9 +106,9 @@ is the whole system.
 
 Example units and Caddy config are in `deploy/`. The shape:
 
-1. **App**: clone to `/opt/csp-collector`, create an unprivileged user, run
+1. **App**: clone to `/opt/blotter`, create an unprivileged user, run
    `bin/setup`, edit `config.yml`.
-2. **Service**: `deploy/csp-collector.service` runs puma on 127.0.0.1:9292 —
+2. **Service**: `deploy/blotter.service` runs puma on 127.0.0.1:9292 —
    one process serving both `POST /csp` (public) and `/admin` (basic auth via
    `gui_password`; `bin/setup` generates one, and `/admin` is not mounted at
    all if it's empty). Caddy (`deploy/Caddyfile.example`) terminates TLS for
@@ -114,13 +116,13 @@ Example units and Caddy config are in `deploy/`. The shape:
    sends the password on every request, so HTTPS is mandatory. Optional
    hardening: Caddy `basic_auth` on `/admin` as a second layer, or a client-IP
    allowlist.
-3. **Digest**: `deploy/csp-collector-digest.{service,timer}` (or a cron line:
-   `0 6 * * * cd /opt/csp-collector && bundle exec bin/digest`). Also does
+3. **Digest**: `deploy/blotter-digest.{service,timer}` (or a cron line:
+   `0 6 * * * cd /opt/blotter && bundle exec bin/digest`). Also does
    the pruning.
 4. **Deploys**: after the initial install, `bin/deploy` does everything —
    `git pull`, `bundle install`, service restart (needs one sudoers line,
    documented in the script). From your laptop it's a single command:
-   `ssh <host> /opt/csp-collector/bin/deploy`.
+   `ssh <host> /opt/blotter/bin/deploy`.
 5. **Backup**: the database is disposable (it's a rolling window); the live
    rules file (`data/rules.yml`) is the accumulated judgment — include it in
    your normal backups. The tracked `rules.yml` is only the seed, so deploys

@@ -1,6 +1,6 @@
 # systemd unit for the collector (public ingest + /admin GUI, one port).
 # Install: cp to /etc/systemd/system/, adjust paths/user, then
-#   systemctl enable --now csp-collector
+#   systemctl enable --now blotter
 [Unit]
 Description=CSP collector
 After=network.target
@@ -8,14 +8,14 @@ After=network.target
 [Service]
 Type=simple
 User=cspcollector
-WorkingDirectory=/opt/csp-collector
+WorkingDirectory=/opt/blotter
 ExecStart=/usr/bin/env bundle exec puma -p 9292
 Restart=on-failure
 # Hardening: the app writes only its data dir (database + live rules.yml)
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/opt/csp-collector/data
+ReadWritePaths=/opt/blotter/data
 PrivateTmp=true
 
 [Install]

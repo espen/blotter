@@ -1,9 +1,9 @@
-# Oneshot digest run — triggered by csp-collector-digest.timer
+# Oneshot digest run — triggered by blotter-digest.timer
 [Unit]
 Description=CSP collector daily digest
 
 [Service]
 Type=oneshot
 User=cspcollector
-WorkingDirectory=/opt/csp-collector
+WorkingDirectory=/opt/blotter
 ExecStart=/usr/bin/env bundle exec bin/digest

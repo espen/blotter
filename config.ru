@@ -8,7 +8,7 @@ map "/csp" do
 end
 
 if Collector.config["gui_password"].to_s.empty?
-  warn "csp-collector: gui_password not set — /admin is disabled"
+  warn "blotter: gui_password not set — /admin is disabled"
 else
   map "/admin" do
     run Collector::GUI

@@ -42,7 +42,7 @@ gui_password: CHANGE-ME-PASSWORD
 
 # Daily digest (plain text only)
 digest:
-  from: csp-collector@example.org
+  from: blotter@example.org
   to: admin@example.com
   max_new_keys: 20
 smtp:
