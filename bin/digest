@@ -1,0 +1,43 @@
+#!/usr/bin/env ruby
+# Daily digest: prune old rows, mail only when new keys appeared.
+# Cron: 0 6 * * * cd /path/to/csp-collector && bundle exec bin/digest
+require "net/smtp"
+require_relative "../lib/collector"
+
+store = Collector.store
+store.prune!(days: Collector.config.fetch("prune_days", 90))
+
+rows = store.new_since(Time.now - 24 * 3600)
+exit 0 if rows.empty?
+
+cfg = Collector.config
+digest = cfg.fetch("digest")
+max = digest.fetch("max_new_keys")
+
+# Plain text only — these strings are attacker-controlled (Troy #2).
+lines = rows.first(max).map do |r|
+  badge = r["bucket"] == "unattributed_inline" ? " [UNATTRIBUTED INLINE]" : ""
+  "#{r["count"]}x #{r["type"]} #{r["directive"]} #{r["blocked_key"]} on #{r["document_host"]}#{badge}"
+end
+lines << "... and #{rows.size - max} more" if rows.size > max
+
+from = digest.fetch("from")
+to = digest.fetch("to")
+message = <<~MAIL
+  From: CSP Collector <#{from}>
+  To: #{to}
+  Subject: CSP collector: #{rows.size} new report key(s)
+  Content-Type: text/plain; charset=utf-8
+
+  New violation keys in the last 24h (inline first, then by count):
+
+  #{lines.join("\n")}
+
+  GUI (WireGuard): review, mark as known, or dig into samples.
+MAIL
+
+smtp_cfg = cfg.fetch("smtp")
+smtp = Net::SMTP.new(smtp_cfg.fetch("host"), smtp_cfg.fetch("port"))
+smtp.enable_starttls if smtp_cfg["starttls"]
+args = smtp_cfg["user"] ? [smtp_cfg["user"], smtp_cfg["password"], :plain] : []
+smtp.start("csp-collector", *args) { |s| s.send_message(message, from, to) }

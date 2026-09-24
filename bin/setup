@@ -1,0 +1,31 @@
+#!/bin/sh
+# One-shot bootstrap: gems, config with a fresh session secret, data dir.
+set -e
+cd "$(dirname "$0")/.."
+
+bundle install
+
+if [ ! -f config.yml ]; then
+  cp config.yml.example config.yml
+  secret=$(ruby -rsecurerandom -e 'print SecureRandom.hex(64)')
+  password=$(ruby -rsecurerandom -e 'print SecureRandom.urlsafe_base64(18)')
+  ruby -e 'c = File.read("config.yml"); File.write("config.yml", c.sub("CHANGE-ME-PASSWORD", ARGV[1]).sub("CHANGE-ME", ARGV[0]))' "$secret" "$password"
+  chmod 600 config.yml
+  echo "Created config.yml with a generated session secret."
+  echo "GUI password (any username, at /admin): $password"
+  echo "Edit config.yml now: own_host_suffixes, policy_directives, digest/smtp, title."
+else
+  echo "config.yml already exists — leaving it alone."
+fi
+
+mkdir -p data
+
+# If config points the live rules file into data/ (recommended for production,
+# keeps the git checkout clean), seed it from the tracked rules.yml.
+rules_path=$(ruby -ryaml -e 'print YAML.safe_load(File.read("config.yml"))["rules_path"].to_s')
+if [ "$rules_path" != "rules.yml" ] && [ -n "$rules_path" ] && [ ! -f "$rules_path" ]; then
+  cp rules.yml "$rules_path"
+  echo "Seeded $rules_path from rules.yml."
+fi
+
+echo "Done. Run the test suite with: bin/test"

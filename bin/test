@@ -1,0 +1,5 @@
+#!/bin/sh
+set -e
+cd "$(dirname "$0")/.."
+bundle exec ruby -Itest -e 'Dir["test/test_*.rb"].each { |f| require File.expand_path(f) }'
+rm -f test/rules.test.yml

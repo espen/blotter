@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CSP Collector · <%= site_title %></title>
+<style>
+  /* Self-hosted (variable weight 400-600); no external requests from this GUI. */
+  @font-face { font-family: "Instrument Sans"; font-style: normal; font-weight: 400 600; font-display: swap;
+    src: url(<%= url("/fonts/instrument-sans-latin.woff2") %>) format("woff2");
+    unicode-range: U+0000-00FF, U+2013-2014, U+2018-2019, U+201C-201D, U+2026; }
+  @font-face { font-family: "Instrument Sans"; font-style: normal; font-weight: 400 600; font-display: swap;
+    src: url(<%= url("/fonts/instrument-sans-latin-ext.woff2") %>) format("woff2");
+    unicode-range: U+0100-02BA, U+1E00-1EFF, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+  @font-face { font-family: "Fragment Mono"; font-style: normal; font-weight: 400; font-display: swap;
+    src: url(<%= url("/fonts/fragment-mono-latin.woff2") %>) format("woff2");
+    unicode-range: U+0000-00FF, U+2013-2014, U+2018-2019, U+201C-201D, U+2026; }
+  @font-face { font-family: "Fragment Mono"; font-style: normal; font-weight: 400; font-display: swap;
+    src: url(<%= url("/fonts/fragment-mono-latin-ext.woff2") %>) format("woff2");
+    unicode-range: U+0100-02BA, U+1E00-1EFF, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+  :root {
+    --ink: #1c1c1a; --muted: #8a8a85; --hairline: #e4e4df;
+    --paper: #fbfbf9; --hover: #f2f2ee; --accent: #e8590c;
+  }
+  * { margin: 0; box-sizing: border-box; }
+  body { background: var(--paper); color: var(--ink); font: 14px/1.55 "Instrument Sans", sans-serif; padding: 3rem clamp(1.5rem, 6vw, 5rem); }
+  header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 2.5rem; }
+  h1 { font-size: 15px; font-weight: 600; letter-spacing: 0.01em; }
+  h1 a { color: inherit; text-decoration: none; }
+  h1 span { color: var(--muted); font-weight: 400; margin-left: 0.75rem; }
+  nav a { color: var(--muted); text-decoration: none; margin-left: 1.5rem; font-size: 13px; }
+  nav a.active { color: var(--ink); border-bottom: 1px solid var(--ink); padding-bottom: 2px; }
+  h2 { font-size: 15px; font-weight: 600; margin-bottom: 0.4rem; }
+  h3 { font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 2.5rem 0 0.75rem; }
+  a { color: var(--ink); }
+  table { border-collapse: collapse; width: 100%; }
+  th { text-align: left; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 0 1rem 0.6rem 0; border-bottom: 1px solid var(--ink); }
+  th.num, td.num { text-align: right; padding-right: 0; }
+  td { padding: 0.7rem 1rem 0.7rem 0; border-bottom: 1px solid var(--hairline); vertical-align: baseline; }
+  td.num { font-variant-numeric: tabular-nums; font-weight: 500; }
+  tr.clickable { cursor: pointer; }
+  tr.clickable:hover td { background: var(--hover); }
+  code, .mono { font: 13px "Fragment Mono", monospace; word-break: break-all; }
+  .muted { color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  a.facet { color: var(--muted); text-decoration: underline dotted; text-underline-offset: 3px; }
+  a.facet:hover { color: var(--ink); }
+  .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; }
+  .dot.inline { background: var(--accent); }
+  .dot.new { background: var(--ink); }
+  .dot.quiet { background: var(--hairline); }
+  .dot.overflow { background: var(--muted); }
+  .tag { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--accent); margin-left: 0.6rem; }
+  .filters { display: flex; gap: 1.75rem; align-items: baseline; margin-bottom: 1.25rem; font-size: 13px; flex-wrap: wrap; }
+  .filters input[type=search] { border: none; border-bottom: 1px solid var(--hairline); background: none; font: inherit; padding: 0.2rem 0; width: 14rem; outline: none; border-radius: 0; }
+  .filters input[type=search]:focus { border-color: var(--ink); }
+  .filters select { border: none; background: none; font: inherit; color: var(--muted); cursor: pointer; }
+  .filters button { border: none; background: none; font: inherit; cursor: pointer; padding: 0; border-bottom: 1px solid var(--ink); }
+  .filters a { color: var(--muted); text-decoration: none; font-size: 12.5px; }
+  .filters .count { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
+  form.inline { display: inline; margin-right: 1rem; }
+  form.inline button { border: 1px solid var(--hairline); background: none; font: 12.5px "Instrument Sans", sans-serif; padding: 0.35rem 0.8rem; cursor: pointer; color: var(--ink); }
+  form.inline button:hover { border-color: var(--ink); }
+  pre { font: 12.5px/1.6 "Fragment Mono", monospace; background: #f4f4f0; border: 1px solid var(--hairline); padding: 1.25rem; overflow-x: auto; margin: 1.5rem 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1><a href="<%= url("/") %>">CSP Collector</a> <span><%= site_title %></span></h1>
+  <nav>
+    <a href="<%= url("/") %>" class="<%= "active" if request.path_info == "/" %>">Reports</a>
+    <a href="<%= url("/rules") %>" class="<%= "active" if request.path_info == "/rules" %>">Rules</a>
+  </nav>
+</header>
+<%== yield %>
+<script>
+  document.querySelectorAll("tr.clickable").forEach(function (tr) {
+    tr.addEventListener("click", function () { location.href = tr.dataset.href; });
+  });
+</script>
+</body>
+</html>

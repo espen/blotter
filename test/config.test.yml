@@ -1,0 +1,20 @@
+own_host_suffixes: [example.com, example.org, example.net]
+policy_directives: [default-src, script-src, style-src, img-src, connect-src]
+db_path: data/test-app.sqlite3
+rules_path: test/rules.test.yml
+max_new_keys_per_day: 5
+max_rows: 100
+session_secret: test-secret-test-secret-test-secret-test-secret-test-secret-1234
+digest:
+  from: csp@test
+  to: admin@example.com
+  max_new_keys: 20
+smtp:
+  host: 127.0.0.1
+  port: 2525
+  starttls: false
+
+# Site
+title: example
+prune_days: 90
+gui_password: test-gui-password

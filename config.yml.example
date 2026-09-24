@@ -1,0 +1,57 @@
+# Copy to config.yml and adjust. config.yml is gitignored.
+
+# Reports whose document-uri host is not one of these (or a subdomain) are dropped.
+own_host_suffixes:
+  - example.com
+  - example.org
+  - example.net
+
+# Directives our CSP actually emits. A report violating a directive not listed
+# here means an extension/proxy rewrote the header — dropped.
+policy_directives:
+  - default-src
+  - script-src
+  - script-src-elem
+  - script-src-attr
+  - style-src
+  - style-src-elem
+  - style-src-attr
+  - img-src
+  - font-src
+  - connect-src
+  - frame-src
+  - frame-ancestors
+  - base-uri
+  - form-action
+
+db_path: data/collector.sqlite3
+# data/rules.yml is seeded from the tracked rules.yml by bin/setup; your
+# accumulated ignore rules then never dirty the git checkout.
+rules_path: data/rules.yml
+
+# Flood caps
+max_new_keys_per_day: 500
+max_rows: 50000
+
+# GUI session secret — generate with: ruby -rsecurerandom -e 'puts SecureRandom.hex(64)'
+session_secret: CHANGE-ME
+
+# GUI login (HTTP basic auth, any username) for /admin. bin/setup generates a
+# random value. If empty, /admin is not mounted at all. HTTPS only.
+gui_password: CHANGE-ME-PASSWORD
+
+# Daily digest (plain text only)
+digest:
+  from: csp-collector@example.org
+  to: admin@example.com
+  max_new_keys: 20
+smtp:
+  host: 127.0.0.1
+  port: 2525
+  starttls: false
+  # user: ""
+  # password: ""
+
+# Site
+title: mycompany
+prune_days: 90

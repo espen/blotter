@@ -1,0 +1,31 @@
+<h3 style="margin-top:0">Ignore rules</h3>
+<table>
+<tr><th>Kind</th><th>Value</th><th class="num">Drops · 7d</th><th></th></tr>
+<% Collector::Rules::KINDS.each do |kind| %>
+  <% @rules[kind].each do |value| %>
+    <tr>
+      <td class="muted"><%= kind %></td>
+      <td class="mono"><%= value %></td>
+      <td class="num"><%= @hits["#{kind}:#{value}"] || 0 %></td>
+      <td style="text-align:right">
+        <form class="inline" method="post" action="<%= url("/rules/delete") %>" style="margin:0">
+          <input type="hidden" name="authenticity_token" value="<%= csrf_token %>">
+          <input type="hidden" name="kind" value="<%= kind %>">
+          <input type="hidden" name="value" value="<%= value %>">
+          <button>Delete</button>
+        </form>
+      </td>
+    </tr>
+  <% end %>
+<% end %>
+</table>
+
+<h3>Structural drops · 7d</h3>
+<table style="max-width:28rem">
+<% @hits.select { |k, _| k.start_with?("structural:") }.each do |rule, total| %>
+  <tr><td class="mono"><%= rule.sub("structural:", "") %></td><td class="num"><%= total %></td></tr>
+<% end %>
+</table>
+
+<p class="muted" style="margin-top:2.5rem">Rules are created from stored reports only ("ignore") —
+no free-text entry. Broader rules (host_suffixes) are a file edit over SSH.</p>

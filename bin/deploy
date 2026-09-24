@@ -1,0 +1,20 @@
+#!/bin/sh
+# Deploy the latest commit. Run on the server, or from anywhere:
+#   ssh <host> /opt/csp-collector/bin/deploy
+# Requires a sudoers rule so the app user may restart the service:
+#   cspcollector ALL=(root) NOPASSWD: /usr/bin/systemctl restart csp-collector
+set -e
+cd "$(dirname "$0")/.."
+
+before=$(git rev-parse --short HEAD)
+git pull --ff-only
+after=$(git rev-parse --short HEAD)
+
+if [ "$before" = "$after" ]; then
+  echo "Already at $after — nothing to deploy."
+  exit 0
+fi
+
+bundle install --quiet
+sudo -n systemctl restart csp-collector
+echo "Deployed $before -> $after"

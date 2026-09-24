@@ -1,0 +1,44 @@
+<form method="get" action="<%= url("/") %>" class="filters">
+  <input type="search" name="q" placeholder="Filter by host…" value="<%= @filters[:q] %>">
+  <select name="type" onchange="this.form.submit()">
+    <option value="">All types</option>
+    <% store.distinct("type").each do |v| %>
+      <option value="<%= v %>" <%= "selected" if @filters[:type] == v %>><%= v %></option>
+    <% end %>
+  </select>
+  <select name="directive" onchange="this.form.submit()">
+    <option value="">All directives</option>
+    <% store.distinct("directive").each do |v| %>
+      <option value="<%= v %>" <%= "selected" if @filters[:directive] == v %>><%= v %></option>
+    <% end %>
+  </select>
+  <select name="bucket" onchange="this.form.submit()">
+    <option value="">Everything</option>
+    <option value="unattributed_inline" <%= "selected" if @filters[:bucket] == "unattributed_inline" %>>Inline only</option>
+    <option value="overflow" <%= "selected" if @filters[:bucket] == "overflow" %>>Overflow</option>
+    <option value="normal" <%= "selected" if @filters[:bucket] == "normal" %>>Attributed only</option>
+  </select>
+  <button>Filter</button>
+  <a href="<%= url("/") %>">clear</a>
+  <span class="count"><%= @rows.size %> keys · <%= @new_count %> new this week</span>
+</form>
+
+<table>
+  <thead><tr>
+    <th style="width:1.6rem"></th><th>Blocked</th><th>Directive</th><th>Document</th>
+    <th class="num">Count</th><th style="padding-left:2.5rem">Last seen</th>
+  </tr></thead>
+  <tbody>
+  <% @rows.each do |row| %>
+    <tr class="clickable" data-href="<%= url("/report/#{row["id"]}") %>">
+      <td><span class="dot <%= row_dot(row) %>"></span></td>
+      <td class="mono"><%= row["blocked_key"] %><% if row["bucket"] == "unattributed_inline" %><span class="tag">inline</span><% end %><% if row["bucket"] == "overflow" %><span class="tag" style="color:var(--muted)">overflow</span><% end %></td>
+      <td class="muted"><%= row["directive"] %></td>
+      <td class="muted"><%= row["document_host"] %></td>
+      <td class="num"><%= row["count"] %></td>
+      <td class="muted" style="padding-left:2.5rem"><%= row["last_seen"][0, 16].sub("T", " ") %></td>
+    </tr>
+  <% end %>
+  </tbody>
+</table>
+<% if @rows.empty? %><p class="muted" style="margin-top:1rem">No reports stored.</p><% end %>

@@ -1,0 +1,22 @@
+# systemd unit for the collector (public ingest + /admin GUI, one port).
+# Install: cp to /etc/systemd/system/, adjust paths/user, then
+#   systemctl enable --now csp-collector
+[Unit]
+Description=CSP collector
+After=network.target
+
+[Service]
+Type=simple
+User=cspcollector
+WorkingDirectory=/opt/csp-collector
+ExecStart=/usr/bin/env bundle exec puma -p 9292
+Restart=on-failure
+# Hardening: the app writes only its data dir (database + live rules.yml)
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/csp-collector/data
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

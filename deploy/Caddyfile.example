@@ -1,0 +1,9 @@
+# One hostname, TLS automatic via Caddy.
+#   POST /csp    → public report endpoint
+#   /admin/...   → GUI (the app enforces basic auth via gui_password)
+csp.example.com {
+	request_body {
+		max_size 16KB
+	}
+	reverse_proxy 127.0.0.1:9292
+}

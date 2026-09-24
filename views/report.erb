@@ -1,0 +1,25 @@
+<h2 class="mono" style="font-size:15px"><%= @row["blocked_key"] %><% if @row["bucket"] == "unattributed_inline" %><span class="tag">inline</span><% end %></h2>
+<p class="muted">
+  <a class="facet" href="<%= url("/") %>?type=<%= Rack::Utils.escape(@row["type"]) %>"><%= @row["type"] %></a>
+  · <a class="facet" href="<%= url("/") %>?directive=<%= Rack::Utils.escape(@row["directive"]) %>"><%= @row["directive"] %></a>
+  · seen <%= @row["count"] %>×
+  · first <%= @row["first_seen"][0, 16].sub("T", " ") %>
+  · last <%= @row["last_seen"][0, 16].sub("T", " ") %>
+  · on <a class="facet" href="<%= url("/") %>?q=<%= Rack::Utils.escape(@row["document_host"]) %>"><%= @row["document_host"] %></a>
+</p>
+
+<pre><%= JSON.pretty_generate(JSON.parse(@row["sample"])) %></pre>
+
+<p>
+<% @options.each do |kind, value| %>
+  <form class="inline" method="post" action="<%= url("/rows/#{@row["id"]}/ignore") %>">
+    <input type="hidden" name="authenticity_token" value="<%= csrf_token %>">
+    <input type="hidden" name="kind" value="<%= kind %>">
+    <button>Ignore <%= kind %> · <%= value %></button>
+  </form>
+<% end %>
+  <form class="inline" method="post" action="<%= url("/rows/#{@row["id"]}/delete") %>">
+    <input type="hidden" name="authenticity_token" value="<%= csrf_token %>">
+    <button>Delete row</button>
+  </form>
+</p>
