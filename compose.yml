@@ -11,3 +11,9 @@ services:
     volumes:
       - ./data:/app/data
       - ./config.yml:/app/config.yml:ro
+    healthcheck:
+      test: ["CMD", "ruby", "-rnet/http", "-e", "exit Net::HTTP.get_response(URI(\"http://127.0.0.1:9292/csp\")).code == \"204\" ? 0 : 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3

@@ -15,6 +15,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 COPY --from=build /usr/local/bundle /usr/local/bundle
 COPY . .
-ENV RACK_ENV=production
+ENV RACK_ENV=production BUNDLE_WITHOUT=test
 EXPOSE 9292
 CMD ["bundle", "exec", "puma", "-p", "9292"]
