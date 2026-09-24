@@ -23,7 +23,18 @@ module Collector
   end
 
   def self.rules
-    @rules ||= Rules.new(File.expand_path(config.fetch("rules_path"), root))
+    @rules ||= begin
+      path = File.expand_path(config.fetch("rules_path"), root)
+      seed = File.join(root, "rules.yml")
+      # First boot with no live rules file (e.g. a fresh Docker volume):
+      # seed it from the tracked community noise list.
+      if path != seed && !File.exist?(path) && File.exist?(seed)
+        require "fileutils"
+        FileUtils.mkdir_p(File.dirname(path))
+        FileUtils.cp(seed, path)
+      end
+      Rules.new(path)
+    end
   end
 
   def self.reset!

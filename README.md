@@ -127,9 +127,20 @@ Example units and Caddy config are in `deploy/`. The shape:
    stay a plain `git pull && bundle install && systemctl restart` — nothing on
    the server ever modifies the checkout.
 
-There is no Docker image. One process and a SQLite file don't need one for
-a single-host deploy; a Dockerfile may come later as an alternative install
-path if there's demand.
+### Docker
+
+A `Dockerfile` and `compose.yml` are included (pinned Ruby, two-stage build,
+non-root, memory-capped):
+
+```sh
+cp config.yml.example config.yml   # edit; generate secrets with: openssl rand -hex 64
+docker compose up -d --build       # app on 127.0.0.1:9292; data/ is created and
+                                   # the rules file auto-seeds on first boot
+```
+
+Digest via host cron:
+`0 6 * * * cd /path/to/app && docker compose exec -T app bundle exec bin/digest`.
+Either path works — Docker or the bare-metal systemd units above; pick one.
 
 Rate limiting: stock Caddy has no per-IP rate limiter (that's a plugin). At
 typical volumes you don't need one — the body cap plus the new-key flood cap

@@ -1,0 +1,13 @@
+# Docker deployment. Config lives in ./config.yml (never in git),
+# all persistent state in ./data (database + live rules file).
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    user: "1000:1000"
+    mem_limit: 384m
+    ports:
+      - "127.0.0.1:9292:9292"
+    volumes:
+      - ./data:/app/data
+      - ./config.yml:/app/config.yml:ro
