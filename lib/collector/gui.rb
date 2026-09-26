@@ -12,6 +12,7 @@ module Collector
     set :static, true
     set :erb, escape_html: true
     set :show_exceptions, false
+    set :prefixed_redirects, true
     # Reachability is controlled by binding to the WireGuard interface, not by
     # Host-header checks — the GUI is reached by bare IP, so no fixed hostname.
     set :host_authorization, permitted_hosts: []
