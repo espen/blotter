@@ -31,7 +31,10 @@ module Collector
     def match(norm)
       d = data
       d["schemes"].each do |s|
-        return "schemes:#{s}" if norm[:blocked].start_with?(s) || norm[:source_file].start_with?(s)
+        # Browsers redact extension URLs to the bare scheme name (no colon).
+        bare = s.chomp(":")
+        return "schemes:#{s}" if norm[:blocked].start_with?(s) || norm[:source_file].start_with?(s) ||
+                                 norm[:blocked] == bare || norm[:source_file] == bare
       end
       d["hosts"].each do |h|
         return "hosts:#{h}" if norm[:blocked_host] == h

@@ -21,6 +21,18 @@ class TestFilter < Minitest::Test
     assert_equal "schemes:chrome-extension:", rule
   end
 
+  def test_redacted_bare_extension_scheme_in_source_file_drops
+    File.write(@rules.instance_variable_get(:@path), YAML.dump(
+      { "schemes" => ["chrome-extension:"], "hosts" => [], "host_suffixes" => [], "samples" => [] }
+    ))
+    n = norm(directive: "base-uri", source_file: "chrome-extension",
+             blocked: "https://ts.example.com/book", blocked_host: "ts.example.com",
+             blocked_key: "ts.example.com")
+    verdict, rule = evaluate(n)
+    assert_equal :drop, verdict
+    assert_equal "schemes:chrome-extension:", rule
+  end
+
   def test_host_blocklist_drops
     verdict, rule = evaluate(norm(blocked_host: "translate.googleapis.com", blocked_key: "translate.googleapis.com"))
     assert_equal :drop, verdict
