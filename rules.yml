@@ -4,30 +4,11 @@ schemes:
 - 'moz-extension:'
 - 'safari-extension:'
 - 'safari-web-extension:'
-- 'ms-browser-extension:'
-- 'webviewprogressproxy:'
-- 'mxaddon-pkg:'
-- 'jar:'
-- 'file:'
-- 'tmtbff:'
-- 'mbinit:'
-- 'symres:'
 - 'resource:'
-- 'wvjbscheme:'
-- 'asset:'
+- 'file:'
 hosts:
 - translate.googleapis.com
-- local.adguard.org
-- addons.mozilla.org
-- widgets.amung.us
 - localhost
 - 127.0.0.1
-- getpocket.com
-- joinhoney.com
-- loop11.com
-- khan.github.io
-- netcheckcdn.xyz
-host_suffixes:
-- kaspersky-labs.com
-- superfish.com
+host_suffixes: []
 samples: []
