@@ -85,12 +85,33 @@ Content-Security-Policy: ...; report-to csp-endpoint
 Add `'report-sample'` to `script-src` so inline violations carry the first 40
 chars of the script — that's what makes the unattributed-inline bucket useful.
 
+## Tightening your policy (Report-Only rollouts)
+
+Browsers let a second, stricter policy run alongside the enforced one without
+blocking anything:
+
+```
+Content-Security-Policy: <your current policy>
+Content-Security-Policy-Report-Only: <the stricter policy you want>; report-uri https://csp.example.com/csp
+```
+
+Reports carry a `disposition` (`enforce` = a real block hit a real user;
+`report` = hypothetical, from a report-only policy), and Blotter keys them
+separately. So during a rollout: filter the GUI to **report-only** to see
+exactly what would break if you enforced, or to **enforced** to ignore the
+rollout chatter — and the digest tags rollout keys `[REPORT-ONLY]`. When the
+report-only list goes quiet, promote the policy.
+
+One catch: `policy_directives` must cover the directives of *both* policies
+while a rollout runs, or the structural filter drops exactly the reports the
+rollout exists to collect.
+
 ## Configuration (config.yml)
 
 | Key | What it does |
 |---|---|
 | `own_host_suffixes` | Domains you actually serve. Reports about any other document are dropped as scanner noise. Subdomains match automatically. |
-| `policy_directives` | Directives your CSP actually emits. A report violating anything else means a proxy/extension rewrote your header — dropped. |
+| `policy_directives` | Directives your CSP actually emits (enforced *and* report-only). A report violating anything else means a proxy/extension rewrote your header — dropped. |
 | `db_path` | SQLite file location (default `data/collector.sqlite3`). |
 | `rules_path` | The live YAML ignore-rules file (default `data/rules.yml`; `bin/setup` seeds it from the tracked `rules.yml`). |
 | `max_new_keys_per_day` | Flood cap: new dedupe keys per day before overflow (500 is generous). |

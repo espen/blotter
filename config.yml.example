@@ -6,8 +6,9 @@ own_host_suffixes:
   - example.org
   - example.net
 
-# Directives our CSP actually emits. A report violating a directive not listed
-# here means an extension/proxy rewrote the header — dropped.
+# Directives our CSP actually emits — the enforced policy plus any
+# Content-Security-Policy-Report-Only rollout. A report violating a directive
+# not listed here means an extension/proxy rewrote the header — dropped.
 policy_directives:
   - default-src
   - script-src

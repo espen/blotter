@@ -89,6 +89,36 @@ class TestIngestApp < Minitest::Test
     assert_equal ["inline:window.alpha", "inline:window.beta"], inline_rows.map { |r| r["blocked_key"] }.sort
   end
 
+  def test_disposition_defaults_to_enforce
+    post "/csp", JSON.generate(LEGACY), "CONTENT_TYPE" => "application/csp-report"
+    assert_equal "enforce", @store.rows.first["disposition"]
+  end
+
+  def test_report_only_disposition_stored_as_separate_key
+    post "/csp", JSON.generate(LEGACY), "CONTENT_TYPE" => "application/csp-report"
+    report_only = { "csp-report" => LEGACY["csp-report"].merge("disposition" => "report") }
+    post "/csp", JSON.generate(report_only), "CONTENT_TYPE" => "application/csp-report"
+    rows = @store.rows
+    assert_equal 2, rows.size
+    assert_equal %w[enforce report], rows.map { |r| r["disposition"] }.sort
+  end
+
+  def test_modern_format_report_only_disposition
+    modern = [{ "type" => "csp-violation", "url" => "https://ts.example.com/book",
+                "body" => MODERN.first["body"].merge("disposition" => "report") }]
+    post "/csp", JSON.generate(modern), "CONTENT_TYPE" => "application/reports+json"
+    row = @store.rows.first
+    assert_equal "report", row["disposition"]
+    assert_includes row["sample"], '"disposition":"report"'
+  end
+
+  def test_non_csp_types_have_no_disposition
+    nel = [{ "type" => "network-error", "url" => "https://ts.example.com/x",
+             "body" => { "type" => "dns.name_not_resolved" } }]
+    post "/csp", JSON.generate(nel), "CONTENT_TYPE" => "application/reports+json"
+    assert_equal "", @store.rows.first["disposition"]
+  end
+
   def test_foreign_document_counted_as_structural_drop
     foreign = { "csp-report" => LEGACY["csp-report"].merge("document-uri" => "https://scanner.example/") }
     post "/csp", JSON.generate(foreign), "CONTENT_TYPE" => "application/csp-report"

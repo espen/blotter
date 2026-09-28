@@ -16,7 +16,7 @@ module TestSetup
       type: "csp-violation", directive: "script-src", blocked: "https://evil.example/x.js",
       blocked_host: "evil.example", blocked_key: "evil.example", source_file: "",
       document_uri: "https://ts.example.com/book", document_host: "ts.example.com",
-      sample: "", raw: { "blocked" => "https://evil.example/x.js" }
+      disposition: "enforce", sample: "", raw: { "blocked" => "https://evil.example/x.js" }
     }.merge(over)
   end
 end

@@ -12,6 +12,13 @@
       <option value="<%= v %>" <%= "selected" if @filters[:directive] == v %>><%= v %></option>
     <% end %>
   </select>
+  <% if store.distinct("disposition").include?("report") %>
+    <select name="disposition" onchange="this.form.submit()">
+      <option value="">Enforce + report-only</option>
+      <option value="enforce" <%= "selected" if @filters[:disposition] == "enforce" %>>Enforced only</option>
+      <option value="report" <%= "selected" if @filters[:disposition] == "report" %>>Report-only</option>
+    </select>
+  <% end %>
   <select name="bucket" onchange="this.form.submit()">
     <option value="">Everything</option>
     <option value="unattributed_inline" <%= "selected" if @filters[:bucket] == "unattributed_inline" %>>Inline only</option>
@@ -32,7 +39,7 @@
   <% @rows.each do |row| %>
     <tr class="clickable" data-href="<%= url("/report/#{row["id"]}") %>">
       <td><span class="dot <%= row_dot(row) %>"></span></td>
-      <td class="mono"><%= row["blocked_key"] %><% if row["bucket"] == "unattributed_inline" %><span class="tag">inline</span><% end %><% if row["bucket"] == "overflow" %><span class="tag" style="color:var(--muted)">overflow</span><% end %></td>
+      <td class="mono"><%= row["blocked_key"] %><% if row["bucket"] == "unattributed_inline" %><span class="tag">inline</span><% end %><% if row["bucket"] == "overflow" %><span class="tag" style="color:var(--muted)">overflow</span><% end %><% if row["disposition"] == "report" %><span class="tag" style="color:var(--muted)">report-only</span><% end %></td>
       <td class="muted"><%= row["directive"] %></td>
       <td class="muted"><%= row["document_host"] %></td>
       <td class="num"><%= row["count"] %></td>

@@ -1,7 +1,10 @@
-<h2 class="mono" style="font-size:15px"><%= @row["blocked_key"] %><% if @row["bucket"] == "unattributed_inline" %><span class="tag">inline</span><% end %></h2>
+<h2 class="mono" style="font-size:15px"><%= @row["blocked_key"] %><% if @row["bucket"] == "unattributed_inline" %><span class="tag">inline</span><% end %><% if @row["disposition"] == "report" %><span class="tag" style="color:var(--muted)">report-only</span><% end %></h2>
 <p class="muted">
   <a class="facet" href="<%= url("/") %>?type=<%= Rack::Utils.escape(@row["type"]) %>"><%= @row["type"] %></a>
   · <a class="facet" href="<%= url("/") %>?directive=<%= Rack::Utils.escape(@row["directive"]) %>"><%= @row["directive"] %></a>
+  <% unless @row["disposition"].empty? %>
+    · <a class="facet" href="<%= url("/") %>?disposition=<%= Rack::Utils.escape(@row["disposition"]) %>"><%= @row["disposition"] == "report" ? "report-only" : "enforced" %></a>
+  <% end %>
   · seen <%= @row["count"] %>×
   · first <%= @row["first_seen"][0, 16].sub("T", " ") %>
   · last <%= @row["last_seen"][0, 16].sub("T", " ") %>

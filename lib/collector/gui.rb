@@ -81,7 +81,8 @@ module Collector
       # Filter values are matched as SQL parameters only — free text is safe.
       @filters = {
         type: params[:type].to_s, directive: params[:directive].to_s,
-        bucket: params[:bucket].to_s, q: params[:q].to_s
+        bucket: params[:bucket].to_s, disposition: params[:disposition].to_s,
+        q: params[:q].to_s
       }
       @rows = store.rows(**@filters)
       @new_count = store.new_since(Time.now - 7 * 86_400).size

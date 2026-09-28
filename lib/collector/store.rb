@@ -5,7 +5,7 @@ module Collector
   # Deduped report rows + rule hit counters + daily new-key cap state.
   # Two processes (ingest + GUI) share the file; WAL handles that.
   class Store
-    OVERFLOW_KEY = { type: "overflow", directive: "", blocked_key: "", document_host: "", bucket: "overflow" }.freeze
+    OVERFLOW_KEY = { type: "overflow", directive: "", blocked_key: "", document_host: "", bucket: "overflow", disposition: "" }.freeze
 
     SCHEMA = <<~SQL
       CREATE TABLE IF NOT EXISTS reports (
@@ -15,11 +15,12 @@ module Collector
         blocked_key TEXT NOT NULL DEFAULT '',
         document_host TEXT NOT NULL DEFAULT '',
         bucket TEXT NOT NULL DEFAULT 'normal',
+        disposition TEXT NOT NULL DEFAULT '',
         first_seen TEXT NOT NULL,
         last_seen TEXT NOT NULL,
         count INTEGER NOT NULL DEFAULT 1,
         sample TEXT NOT NULL,
-        UNIQUE(type, directive, blocked_key, document_host, bucket)
+        UNIQUE(type, directive, blocked_key, document_host, bucket, disposition)
       );
       CREATE INDEX IF NOT EXISTS idx_reports_last_seen ON reports(last_seen);
       CREATE TABLE IF NOT EXISTS rule_hits (
@@ -41,12 +42,13 @@ module Collector
       @db.execute("PRAGMA journal_mode = WAL")
       @db.execute_batch(SCHEMA)
       @db.results_as_hash = true
+      migrate!
       @max_new_keys_per_day = max_new_keys_per_day
       @max_rows = max_rows
       @mutex = Mutex.new
     end
 
-    # norm: {type:, directive:, blocked_key:, document_host:, bucket:, raw:}
+    # norm: {type:, directive:, blocked_key:, document_host:, bucket:, disposition:, raw:}
     # Returns :recorded or :overflow.
     def record(norm)
       now = Time.now.utc.iso8601
@@ -76,10 +78,10 @@ module Collector
       end
     end
 
-    def rows(limit: 500, type: nil, directive: nil, bucket: nil, q: nil)
+    def rows(limit: 500, type: nil, directive: nil, bucket: nil, disposition: nil, q: nil)
       where = ["1=1"]
       args = []
-      { "type" => type, "directive" => directive, "bucket" => bucket }.each do |col, val|
+      { "type" => type, "directive" => directive, "bucket" => bucket, "disposition" => disposition }.each do |col, val|
         next if val.nil? || val.empty?
 
         where << "#{col} = ?"
@@ -94,7 +96,7 @@ module Collector
     end
 
     def distinct(column)
-      raise ArgumentError unless %w[type directive bucket].include?(column)
+      raise ArgumentError unless %w[type directive bucket disposition].include?(column)
 
       @db.execute("SELECT DISTINCT #{column} AS v FROM reports ORDER BY v").map { |r| r["v"] }.reject(&:empty?)
     end
@@ -130,18 +132,40 @@ module Collector
 
     private
 
+    # Adds the disposition column (and widened dedupe key) to databases created
+    # before it existed. One-shot; no-op once the column is present.
+    def migrate!
+      cols = @db.execute("PRAGMA table_info(reports)").map { |r| r["name"] }
+      return if cols.include?("disposition")
+
+      @db.transaction do
+        @db.execute("ALTER TABLE reports RENAME TO reports_old")
+        @db.execute_batch(SCHEMA)
+        @db.execute(<<~SQL)
+          INSERT INTO reports (id, type, directive, blocked_key, document_host, bucket,
+                               disposition, first_seen, last_seen, count, sample)
+          SELECT id, type, directive, blocked_key, document_host, bucket,
+                 CASE type WHEN 'csp-violation' THEN 'enforce' ELSE '' END,
+                 first_seen, last_seen, count, sample
+          FROM reports_old
+        SQL
+        @db.execute("DROP TABLE reports_old")
+        @db.execute_batch(SCHEMA) # the rename took idx_reports_last_seen with it
+      end
+    end
+
     def bump(key, now)
-      @db.execute(<<~SQL, [now, key[:type], key[:directive], key[:blocked_key], key[:document_host], key[:bucket]])
+      @db.execute(<<~SQL, [now, key[:type], key[:directive], key[:blocked_key], key[:document_host], key[:bucket], key[:disposition]])
         UPDATE reports SET count = count + 1, last_seen = ?
-        WHERE type = ? AND directive = ? AND blocked_key = ? AND document_host = ? AND bucket = ?
+        WHERE type = ? AND directive = ? AND blocked_key = ? AND document_host = ? AND bucket = ? AND disposition = ?
       SQL
       @db.changes > 0
     end
 
     def insert(key, now, raw)
-      @db.execute(<<~SQL, [key[:type], key[:directive], key[:blocked_key], key[:document_host], key[:bucket], now, now, JSON.generate(raw)])
-        INSERT INTO reports (type, directive, blocked_key, document_host, bucket, first_seen, last_seen, sample)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      @db.execute(<<~SQL, [key[:type], key[:directive], key[:blocked_key], key[:document_host], key[:bucket], key[:disposition], now, now, JSON.generate(raw)])
+        INSERT INTO reports (type, directive, blocked_key, document_host, bucket, disposition, first_seen, last_seen, sample)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       SQL
     end
 

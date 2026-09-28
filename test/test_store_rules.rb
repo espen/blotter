@@ -34,6 +34,44 @@ class TestStore < Minitest::Test
     assert_equal %w[csp-violation network-error], @store.distinct("type")
   end
 
+  def test_disposition_filter_and_distinct
+    @store.record(norm.merge(bucket: "normal"))
+    @store.record(norm(disposition: "report").merge(bucket: "normal"))
+    assert_equal 2, @store.rows.size
+    assert_equal 1, @store.rows(disposition: "report").size
+    assert_equal %w[enforce report], @store.distinct("disposition")
+  end
+
+  def test_migration_adds_disposition_to_old_database
+    path = File.join(Dir.mktmpdir, "old.sqlite3")
+    db = SQLite3::Database.new(path)
+    db.execute_batch(<<~SQL)
+      CREATE TABLE reports (
+        id INTEGER PRIMARY KEY, type TEXT NOT NULL, directive TEXT NOT NULL DEFAULT '',
+        blocked_key TEXT NOT NULL DEFAULT '', document_host TEXT NOT NULL DEFAULT '',
+        bucket TEXT NOT NULL DEFAULT 'normal', first_seen TEXT NOT NULL, last_seen TEXT NOT NULL,
+        count INTEGER NOT NULL DEFAULT 1, sample TEXT NOT NULL,
+        UNIQUE(type, directive, blocked_key, document_host, bucket)
+      );
+      CREATE INDEX idx_reports_last_seen ON reports(last_seen);
+      INSERT INTO reports (type, directive, blocked_key, document_host, bucket, first_seen, last_seen, count, sample)
+      VALUES ('csp-violation', 'script-src', 'evil.example', 'ts.example.com', 'normal',
+              '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z', 7, '{}'),
+             ('network-error', 'dns.name_not_resolved', 'ts.example.com', 'ts.example.com', 'normal',
+              '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z', 2, '{}');
+    SQL
+    db.close
+
+    store = Collector::Store.new(path, max_new_keys_per_day: 5, max_rows: 100)
+    rows = store.rows
+    assert_equal 7, rows.find { |r| r["type"] == "csp-violation" }["count"]
+    assert_equal "enforce", rows.find { |r| r["type"] == "csp-violation" }["disposition"]
+    assert_equal "", rows.find { |r| r["type"] == "network-error" }["disposition"]
+    # A report-only twin of the migrated key lands as its own row.
+    assert_equal :recorded, store.record(norm(disposition: "report").merge(bucket: "normal"))
+    assert_equal 3, store.rows.size
+  end
+
   def test_rule_hits_accumulate
     @store.rule_hit("hosts:x.example")
     @store.rule_hit("hosts:x.example")

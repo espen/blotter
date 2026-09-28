@@ -8,6 +8,7 @@ module Collector
   #   source_file:   query-stripped source file (csp)
   #   document_uri:  query-stripped document/page URL
   #   document_host: host of document_uri
+  #   disposition:   "enforce"/"report" (csp), "" for other types
   #   sample:        script-sample (csp), truncated
   #   raw:           minimized report stored as the sample JSON
   module Ingest
@@ -39,6 +40,7 @@ module Collector
         blocked: str(r["blocked-uri"]),
         source_file: str(r["source-file"]),
         document_uri: str(r["document-uri"]),
+        disposition: csp_disposition(r["disposition"]),
         sample: str(r["script-sample"])
       )
     end
@@ -57,6 +59,7 @@ module Collector
           blocked: str(body["blockedURL"]),
           source_file: str(body["sourceFile"]),
           document_uri: str(body["documentURL"]).empty? ? str(item["url"]) : str(body["documentURL"]),
+          disposition: csp_disposition(body["disposition"]),
           sample: str(body["sample"])
         )
       else
@@ -67,12 +70,19 @@ module Collector
           blocked: str(item["url"]),
           source_file: "",
           document_uri: str(item["url"]),
+          disposition: "",
           sample: ""
         )
       end
     end
 
-    def build(type:, directive:, blocked:, source_file:, document_uri:, sample:)
+    # Absent disposition means an old browser enforcing — "report" is the only
+    # value that changes what a violation means (hypothetical, not a real block).
+    def csp_disposition(v)
+      v == "report" ? "report" : "enforce"
+    end
+
+    def build(type:, directive:, blocked:, source_file:, document_uri:, disposition:, sample:)
       blocked = strip_query(blocked)
       document_uri = strip_query(document_uri)
       source_file = strip_query(source_file)
@@ -86,6 +96,7 @@ module Collector
         source_file: source_file[0, 512],
         document_uri: document_uri[0, 512],
         document_host: host_of(document_uri),
+        disposition: disposition,
         sample: sample[0, Rules::SAMPLE_MAX],
         raw: {
           "type" => type[0, 64],
@@ -93,6 +104,7 @@ module Collector
           "blocked" => blocked[0, 512],
           "source_file" => source_file[0, 512],
           "document_uri" => document_uri[0, 512],
+          "disposition" => disposition,
           "sample" => sample[0, Rules::SAMPLE_MAX]
         }
       }

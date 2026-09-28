@@ -17,6 +17,7 @@ max = digest.fetch("max_new_keys")
 # Plain text only — these strings are attacker-controlled (Troy #2).
 lines = rows.first(max).map do |r|
   badge = r["bucket"] == "unattributed_inline" ? " [UNATTRIBUTED INLINE]" : ""
+  badge += " [REPORT-ONLY]" if r["disposition"] == "report"
   "#{r["count"]}x #{r["type"]} #{r["directive"]} #{r["blocked_key"]} on #{r["document_host"]}#{badge}"
 end
 lines << "... and #{rows.size - max} more" if rows.size > max
