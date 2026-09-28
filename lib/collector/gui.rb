@@ -43,6 +43,7 @@ module Collector
       def store = Collector.store
       def rules = Collector.rules
       def site_title = Collector.config.fetch("title", "")
+      def own_host_suffixes = Collector.config.fetch("own_host_suffixes", [])
 
       # Which "ignore" actions apply to a row — computed from the
       # stored report, so the GUI can only promote observed values.
@@ -82,7 +83,7 @@ module Collector
       @filters = {
         type: params[:type].to_s, directive: params[:directive].to_s,
         bucket: params[:bucket].to_s, disposition: params[:disposition].to_s,
-        q: params[:q].to_s
+        document_host: params[:document_host].to_s, q: params[:q].to_s
       }
       @rows = store.rows(**@filters)
       @new_count = store.new_since(Time.now - 7 * 86_400).size

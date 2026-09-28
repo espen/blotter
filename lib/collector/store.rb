@@ -78,7 +78,7 @@ module Collector
       end
     end
 
-    def rows(limit: 500, type: nil, directive: nil, bucket: nil, disposition: nil, q: nil)
+    def rows(limit: 500, type: nil, directive: nil, bucket: nil, disposition: nil, document_host: nil, q: nil)
       where = ["1=1"]
       args = []
       { "type" => type, "directive" => directive, "bucket" => bucket, "disposition" => disposition }.each do |col, val|
@@ -87,10 +87,15 @@ module Collector
         where << "#{col} = ?"
         args << val
       end
+      if document_host && !document_host.empty?
+        # Suffix match, same semantics as Filter.own_host? — so a configured
+        # suffix like staging.example.org selects every wildcard subdomain.
+        where << "(document_host = ? OR document_host LIKE ? ESCAPE '\\')"
+        args << document_host << "%.#{escape_like(document_host)}"
+      end
       if q && !q.empty?
         where << "(blocked_key LIKE ? ESCAPE '\\' OR document_host LIKE ? ESCAPE '\\')"
-        like = "%#{q.gsub(/[\\%_]/) { |c| "\\#{c}" }}%"
-        args << like << like
+        args << "%#{escape_like(q)}%" << "%#{escape_like(q)}%"
       end
       @db.execute("SELECT * FROM reports WHERE #{where.join(" AND ")} ORDER BY last_seen DESC LIMIT ?", args + [limit])
     end
@@ -131,6 +136,10 @@ module Collector
     end
 
     private
+
+    def escape_like(value)
+      value.gsub(/[\\%_]/) { |c| "\\#{c}" }
+    end
 
     # Adds the disposition column (and widened dedupe key) to databases created
     # before it existed. One-shot; no-op once the column is present.

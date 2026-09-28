@@ -1,6 +1,9 @@
 # Copy to config.yml and adjust. config.yml is gitignored.
 
 # Reports whose document-uri host is not one of these (or a subdomain) are dropped.
+# With more than one entry the GUI shows a site filter over them — so listing an
+# environment suffix like staging.example.com (already accepted as a subdomain)
+# adds a one-click view of every *.staging.example.com report.
 own_host_suffixes:
   - example.com
   - example.org

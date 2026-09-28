@@ -12,6 +12,14 @@
       <option value="<%= v %>" <%= "selected" if @filters[:directive] == v %>><%= v %></option>
     <% end %>
   </select>
+  <% if own_host_suffixes.size > 1 %>
+    <select name="document_host" onchange="this.form.submit()">
+      <option value="">All sites</option>
+      <% own_host_suffixes.each do |v| %>
+        <option value="<%= v %>" <%= "selected" if @filters[:document_host] == v %>><%= v %></option>
+      <% end %>
+    </select>
+  <% end %>
   <% if store.distinct("disposition").include?("report") %>
     <select name="disposition" onchange="this.form.submit()">
       <option value="">Enforce + report-only</option>

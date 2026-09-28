@@ -42,6 +42,16 @@ class TestStore < Minitest::Test
     assert_equal %w[enforce report], @store.distinct("disposition")
   end
 
+  def test_document_host_filter_matches_suffix
+    @store.record(norm.merge(bucket: "normal"))
+    @store.record(norm(document_host: "staging.example.com").merge(bucket: "normal"))
+    @store.record(norm(document_host: "app.staging.example.com").merge(bucket: "normal"))
+    assert_equal 3, @store.rows.size
+    assert_equal 2, @store.rows(document_host: "staging.example.com").size
+    assert_equal 3, @store.rows(document_host: "example.com").size
+    assert_empty @store.rows(document_host: "ing.example.com") # suffix is per label, not substring
+  end
+
   def test_migration_adds_disposition_to_old_database
     path = File.join(Dir.mktmpdir, "old.sqlite3")
     db = SQLite3::Database.new(path)
