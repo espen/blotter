@@ -6,8 +6,8 @@ module Collector
   # Values originate from attacker-controlled reports; they are only ever
   # serialized via YAML.dump of plain strings — never appended as text.
   class Rules
-    KINDS = %w[schemes hosts host_suffixes samples].freeze
-    GUI_KINDS = %w[schemes hosts samples].freeze # host_suffixes is hand-edit only
+    KINDS = %w[schemes hosts host_suffixes url_prefixes samples].freeze
+    GUI_KINDS = %w[schemes hosts samples].freeze # host_suffixes/url_prefixes are hand-edit only
     SCHEME_RE = /\A[a-z][a-z0-9+.\-]{0,63}:\z/
     HOST_RE = /\A(?=.{1,253}\z)([a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?)(\.[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?)*\z/i
     SAMPLE_MAX = 40
@@ -43,6 +43,9 @@ module Collector
         bh = norm[:blocked_host]
         return "host_suffixes:#{h}" if bh == h || bh.end_with?(".#{h}")
       end
+      d["url_prefixes"].each do |p|
+        return "url_prefixes:#{p}" if norm[:blocked].start_with?(p)
+      end
       d["samples"].each do |s|
         return "samples:#{s}" if !norm[:sample].empty? && norm[:sample] == s
       end
@@ -67,6 +70,13 @@ module Collector
         raise InvalidRule, "not a scheme" unless value.match?(SCHEME_RE)
       when "hosts", "host_suffixes"
         raise InvalidRule, "not a hostname" unless value.match?(HOST_RE)
+      when "url_prefixes"
+        # Literal start_with? prefix — a full https URL with a real path.
+        # Stored blocked values are query/fragment-stripped, so a prefix
+        # containing ? or # could never match.
+        host, path = value.match(%r{\Ahttps://([^/?#]+)(/[^?#]*)\z})&.captures
+        raise InvalidRule, "not an https URL prefix" unless host&.match?(HOST_RE)
+        raise InvalidRule, "prefix needs a path" if path == "/"
       when "samples"
         raise InvalidRule, "empty sample" if value.empty?
         raise InvalidRule, "sample too long" if value.length > SAMPLE_MAX

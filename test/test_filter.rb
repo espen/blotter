@@ -39,6 +39,22 @@ class TestFilter < Minitest::Test
     assert_equal "hosts:translate.googleapis.com", rule
   end
 
+  def test_url_prefix_drops_but_other_paths_on_host_pass
+    File.write(@rules.instance_variable_get(:@path), YAML.dump(
+      { "schemes" => [], "hosts" => [], "host_suffixes" => [],
+        "url_prefixes" => ["https://www.gstatic.com/_/translate_http/"], "samples" => [] }
+    ))
+    translate = norm(blocked: "https://www.gstatic.com/_/translate_http/_/ss/k=translate_http.tr.zZ.L.W.O",
+                     blocked_host: "www.gstatic.com", blocked_key: "www.gstatic.com")
+    verdict, rule = evaluate(translate)
+    assert_equal :drop, verdict
+    assert_equal "url_prefixes:https://www.gstatic.com/_/translate_http/", rule
+
+    recaptcha = norm(blocked: "https://www.gstatic.com/recaptcha/api.js",
+                     blocked_host: "www.gstatic.com", blocked_key: "www.gstatic.com")
+    assert_equal [:store, "normal"], evaluate(recaptcha)
+  end
+
   def test_foreign_document_drops
     verdict, rule = evaluate(norm(document_host: "scanner.example"))
     assert_equal :drop, verdict

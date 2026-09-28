@@ -50,7 +50,10 @@ csp-wtf and friends):
 **Ignore rules** are exact-match only (one host, one scheme, one sample) and
 can only be created from a stored report — no free-text entry, so a click can
 never create a rule broad enough to hide a real attack. Every rule shows a
-drop counter so you can see what it eats.
+drop counter so you can see what it eats. The two broader kinds — host
+suffixes and literal URL prefixes (e.g. the Google Translate widget's assets
+under `https://www.gstatic.com/_/translate_http/`) — are hand-edit only; no
+regex anywhere.
 
 **Flood safety:** 16KB body cap, per-POST report cap, max new keys per day
 (excess collapses into one overflow row), max table size, 90-day prune.
@@ -99,7 +102,9 @@ chars of the script — that's what makes the unattributed-inline bucket useful.
 | `prune_days` | Retention — rows unseen this long are deleted by the digest run. |
 
 `rules.yml` can also be edited by hand (it hot-reloads). The `host_suffixes`
-list (wildcard-ish suffix matching) is hand-edit only, by design.
+list (wildcard-ish suffix matching) and the `url_prefixes` list (literal
+`start_with?` match on the query-stripped blocked URL) are hand-edit only,
+by design.
 
 There's no installer beyond `bin/setup` — one config file and one process
 is the whole system.

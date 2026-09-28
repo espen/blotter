@@ -8,7 +8,11 @@ schemes:
 - 'file:'
 hosts:
 - translate.googleapis.com
+- translate.google.com
 - localhost
 - 127.0.0.1
 host_suffixes: []
+url_prefixes:
+- https://www.gstatic.com/_/translate_http/
+- https://fonts.gstatic.com/s/i/productlogos/translate/
 samples: []

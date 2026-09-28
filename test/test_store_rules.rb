@@ -76,6 +76,18 @@ class TestRules < Minitest::Test
     assert_raises(Collector::Rules::InvalidRule) { @rules.add("host_suffixes", "example.com") }
   end
 
+  def test_gui_cannot_add_url_prefixes
+    assert_raises(Collector::Rules::InvalidRule) { @rules.add("url_prefixes", "https://x.example/a/") }
+  end
+
+  def test_url_prefix_validation
+    assert_equal "https://x.example/a/", @rules.validate!("url_prefixes", "https://x.example/a/")
+    assert_raises(Collector::Rules::InvalidRule) { @rules.validate!("url_prefixes", "http://x.example/a/") }
+    assert_raises(Collector::Rules::InvalidRule) { @rules.validate!("url_prefixes", "https://x.example/") }
+    assert_raises(Collector::Rules::InvalidRule) { @rules.validate!("url_prefixes", "https://x.example") }
+    assert_raises(Collector::Rules::InvalidRule) { @rules.validate!("url_prefixes", "https://x.example/a?b=1") }
+  end
+
   def test_delete_rule
     @rules.add("hosts", "gone.example")
     @rules.delete("hosts", "gone.example")
