@@ -85,6 +85,27 @@ Content-Security-Policy: ...; report-to csp-endpoint
 Add `'report-sample'` to `script-src` so inline violations carry the first 40
 chars of the script — that's what makes the unattributed-inline bucket useful.
 
+## Enabling the other report types (NEL, deprecation, crash)
+
+The collector stores any Reporting API type, but browsers only send what your
+response headers ask for — the headers above wire up CSP only. To get
+everything:
+
+```
+Reporting-Endpoints: csp-endpoint="https://csp.example.com/csp", default="https://csp.example.com/csp"
+Report-To: {"group":"nel","max_age":86400,"endpoints":[{"url":"https://csp.example.com/csp"}]}
+NEL: {"report_to":"nel","max_age":86400}
+```
+
+- **NEL** (network errors: DNS, TLS, connect failures — things no server log
+  can see, because the request never arrived) still requires the older
+  `Report-To` header; Chrome never migrated NEL to `Reporting-Endpoints`.
+- **Deprecation / intervention / crash** reports go to the endpoint group
+  named literally `default` — hence the second name on `Reporting-Endpoints`.
+
+Everything lands in the same table with `type` as a column; the GUI type
+filter and the digest pick them up with no further configuration.
+
 ## Tightening your policy (Report-Only rollouts)
 
 Browsers let a second, stricter policy run alongside the enforced one without
