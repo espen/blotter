@@ -125,4 +125,20 @@ class TestIngestApp < Minitest::Test
     assert_empty @store.rows
     assert_equal 1, @store.rule_hit_totals["structural:foreign-document"]
   end
+
+  def test_cors_preflight_gets_cors_headers
+    options "/csp", {}, "HTTP_ORIGIN" => "https://ts.example.com",
+                        "HTTP_ACCESS_CONTROL_REQUEST_METHOD" => "POST",
+                        "HTTP_ACCESS_CONTROL_REQUEST_HEADERS" => "content-type"
+    assert_equal 204, last_response.status
+    assert_equal "*", last_response.headers["access-control-allow-origin"]
+    assert_equal "POST", last_response.headers["access-control-allow-methods"]
+    assert_equal "Content-Type", last_response.headers["access-control-allow-headers"]
+  end
+
+  def test_post_response_carries_cors_headers
+    post "/csp", JSON.generate(MODERN), "CONTENT_TYPE" => "application/reports+json"
+    assert_equal 204, last_response.status
+    assert_equal "*", last_response.headers["access-control-allow-origin"]
+  end
 end

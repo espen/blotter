@@ -6,6 +6,16 @@ module Collector
   class IngestApp
     MAX_BODY = 16 * 1024
 
+    # Reporting API uploads (report-to / NEL) are cross-origin CORS fetches —
+    # without these headers on the preflight AND the POST response, browsers
+    # drop every report silently. Wide-open is fine: write-only, always 204.
+    CORS_HEADERS = {
+      "access-control-allow-origin" => "*",
+      "access-control-allow-methods" => "POST",
+      "access-control-allow-headers" => "Content-Type",
+      "access-control-max-age" => "86400"
+    }.freeze
+
     def initialize(store: Collector.store, rules: Collector.rules, config: Collector.config)
       @store = store
       @rules = rules
@@ -47,7 +57,7 @@ module Collector
     end
 
     def no_content
-      [204, {}, []]
+      [204, CORS_HEADERS.dup, []]
     end
   end
 end
