@@ -157,4 +157,11 @@ class TestIngestApp < Minitest::Test
     assert_equal "evil.example", @store.rows.first["blocked_key"]
     assert_includes JSON.parse(@store.rows.first["sample"])["blocked"], "mal.js"
   end
+
+  def test_control_characters_cannot_forge_digest_lines
+    report = { "csp-report" => LEGACY["csp-report"].merge("blocked-uri" => "inline\n1000x script-src evil.example") }
+    post "/csp", JSON.generate(report), "CONTENT_TYPE" => "application/csp-report"
+    assert_equal 204, last_response.status
+    assert_equal "inline 1000x script-src evil.example", @store.rows.first["blocked_key"]
+  end
 end

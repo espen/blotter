@@ -113,8 +113,9 @@ module Collector
     end
 
     # Invalid UTF-8 would raise in regex/JSON.generate downstream — drop the bad bytes.
+    # Control characters (newlines) would let a report forge lines in the digest.
     def str(v)
-      v.is_a?(String) ? v.scrub("") : ""
+      v.is_a?(String) ? v.scrub("").gsub(/[[:cntrl:]]/, " ") : ""
     end
 
     # GDPR: query strings and fragments may carry personal data — never stored.
