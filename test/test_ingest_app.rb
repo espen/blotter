@@ -141,4 +141,20 @@ class TestIngestApp < Minitest::Test
     assert_equal 204, last_response.status
     assert_equal "*", last_response.headers["access-control-allow-origin"]
   end
+
+  def test_non_object_json_answers_204
+    ["[1]", "5", "null", "\"x\""].each do |body|
+      post "/csp", body, "CONTENT_TYPE" => "application/csp-report"
+      assert_equal 204, last_response.status, body
+    end
+    assert_empty @store.rows
+  end
+
+  def test_invalid_utf8_is_scrubbed_not_500
+    body = JSON.generate(LEGACY).sub("mal.js", "mal\xFF.js".b).b
+    post "/csp", body, "CONTENT_TYPE" => "application/csp-report"
+    assert_equal 204, last_response.status
+    assert_equal "evil.example", @store.rows.first["blocked_key"]
+    assert_includes JSON.parse(@store.rows.first["sample"])["blocked"], "mal.js"
+  end
 end

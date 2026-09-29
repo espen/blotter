@@ -21,6 +21,8 @@ module Collector
       json = JSON.parse(body)
       case content_type.to_s.split(";").first&.strip
       when "application/csp-report", "application/json"
+        return [] unless json.is_a?(Hash)
+
         report = json["csp-report"]
         report.is_a?(Hash) ? [normalize_legacy(report)] : []
       when "application/reports+json"
@@ -110,8 +112,9 @@ module Collector
       }
     end
 
+    # Invalid UTF-8 would raise in regex/JSON.generate downstream — drop the bad bytes.
     def str(v)
-      v.is_a?(String) ? v : ""
+      v.is_a?(String) ? v.scrub("") : ""
     end
 
     # GDPR: query strings and fragments may carry personal data — never stored.
