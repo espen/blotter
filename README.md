@@ -55,7 +55,7 @@ suffixes and literal URL prefixes (e.g. the Google Translate widget's assets
 under `https://www.gstatic.com/_/translate_http/`) — are hand-edit only; no
 regex anywhere.
 
-**Flood safety:** 16KB body cap, per-POST report cap, max new keys per day
+**Flood safety:** 256KB body cap, per-POST report cap, max new keys per day
 (excess collapses into one overflow row), max table size, 90-day prune.
 Reports are counts, not rows — millions of reports stay thousands of rows.
 

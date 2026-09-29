@@ -4,7 +4,12 @@ module Collector
   # Public write-only endpoint. Always answers 204 — scanners and malformed
   # input get no feedback. Never reflects input, never fetches anything.
   class IngestApp
-    MAX_BODY = 16 * 1024
+    # Chrome batches every queued report for an endpoint into one upload and
+    # embeds the full originalPolicy (~1-2KB) in each CSP report, so a burst of
+    # violations easily produces a 20-100KB body. Rejecting it loses the whole
+    # batch AND puts the endpoint into client-side retry backoff. Work is still
+    # bounded by Ingest::MAX_REPORTS_PER_POST.
+    MAX_BODY = 256 * 1024
 
     # Reporting API uploads (report-to / NEL) are cross-origin CORS fetches —
     # without these headers on the preflight AND the POST response, browsers

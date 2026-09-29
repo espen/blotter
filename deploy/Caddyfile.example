@@ -3,7 +3,9 @@
 #   /admin/...   → GUI (the app enforces basic auth via gui_password)
 csp.example.com {
 	request_body {
-		max_size 16KB
+		# Must not undercut IngestApp::MAX_BODY — a 413 here makes the browser
+		# back off the endpoint and silently drop its queued report batch.
+		max_size 256KB
 	}
 	reverse_proxy 127.0.0.1:9292
 }
