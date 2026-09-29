@@ -1,7 +1,7 @@
 require "tempfile"
 
 module Collector
-  # YAML rules file: exact-match values only, hot-reloaded on mtime change.
+  # YAML rules file: exact-match values only, hot-reloaded when mtime/size/inode change.
   # Writes go through validate -> flock -> load -> mutate -> atomic replace.
   # Values originate from attacker-controlled reports; they are only ever
   # serialized via YAML.dump of plain strings — never appended as text.
@@ -17,7 +17,7 @@ module Collector
     def initialize(path)
       @path = path
       @mutex = Mutex.new
-      @mtime = nil
+      @stamp = nil
       @data = empty
       reload_if_changed
     end
@@ -93,12 +93,20 @@ module Collector
 
     def reload_if_changed
       @mutex.synchronize do
-        mtime = File.exist?(@path) ? File.mtime(@path) : nil
-        return if mtime == @mtime
+        stamp = file_stamp
+        return if stamp == @stamp
 
         @data = load_file
-        @mtime = mtime
+        @stamp = stamp
       end
+    end
+
+    # mtime alone misses writes within one timestamp tick (coarse on overlayfs).
+    def file_stamp
+      st = File.stat(@path)
+      [st.mtime, st.size, st.ino]
+    rescue Errno::ENOENT
+      nil
     end
 
     def load_file
@@ -116,7 +124,7 @@ module Collector
           yield d
           write_atomic(d)
           @data = d
-          @mtime = File.mtime(@path)
+          @stamp = file_stamp
         end
       end
     end
