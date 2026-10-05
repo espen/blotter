@@ -51,7 +51,7 @@
       <td class="muted"><%= row["directive"] %></td>
       <td class="muted"><%= row["document_host"] %></td>
       <td class="num"><%= row["count"] %></td>
-      <td class="muted" style="padding-left:2.5rem"><%= row["last_seen"][0, 16].sub("T", " ") %></td>
+      <td class="muted" style="padding-left:2.5rem; white-space:nowrap"><%= row["last_seen"][0, 16].sub("T", " ") %></td>
     </tr>
   <% end %>
   </tbody>
