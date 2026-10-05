@@ -82,6 +82,16 @@ class TestIngestApp < Minitest::Test
     assert_equal "report", row["disposition"]
   end
 
+  def test_type_directive_rule_drops_report_at_ingest
+    @rules.add("type_directives", "network-error/abandoned")
+    nel = [{ "type" => "network-error", "url" => "https://ts.example.com/x",
+             "body" => { "type" => "abandoned" } }]
+    post "/csp", JSON.generate(nel), "CONTENT_TYPE" => "application/reports+json"
+    assert_equal 204, last_response.status
+    assert_empty @store.rows
+    assert_equal 1, @store.rule_hit_totals["type_directives:network-error/abandoned"]
+  end
+
   def test_crash_report_keeps_reason
     report = [{ "type" => "crash", "url" => "https://ts.example.com/manage",
                 "body" => { "reason" => "oom" } }]

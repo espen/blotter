@@ -102,6 +102,21 @@ class TestRules < Minitest::Test
     assert_equal "hosts:noise.example", @rules.match(norm(blocked_host: "noise.example"))
   end
 
+  def test_add_and_match_type_directive
+    @rules.add("type_directives", "network-error/abandoned")
+    assert_equal "type_directives:network-error/abandoned",
+                 @rules.match(norm(type: "network-error", directive: "abandoned"))
+    assert_nil @rules.match(norm(type: "network-error", directive: "http.error"))
+    assert_nil @rules.match(norm(type: "network-error", directive: ""))
+  end
+
+  def test_rejects_bad_type_directive
+    assert_raises(Collector::Rules::InvalidRule) { @rules.add("type_directives", "noslash") }
+    assert_raises(Collector::Rules::InvalidRule) { @rules.add("type_directives", "/abandoned") }
+    assert_raises(Collector::Rules::InvalidRule) { @rules.add("type_directives", "network-error/") }
+    assert_raises(Collector::Rules::InvalidRule) { @rules.add("type_directives", "network-error/a b") }
+  end
+
   def test_yaml_structure_injection_becomes_plain_string
     assert_raises(Collector::Rules::InvalidRule) { @rules.add("hosts", "evil\nschemes:\n - https:") }
   end

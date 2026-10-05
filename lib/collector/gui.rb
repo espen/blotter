@@ -33,7 +33,8 @@ module Collector
         http_only: true
     use Rack::Protection::AuthenticityToken
 
-    IGNORE_KINDS = { "scheme" => "schemes", "host" => "hosts", "sample" => "samples" }.freeze
+    IGNORE_KINDS = { "type_directive" => "type_directives", "scheme" => "schemes",
+                     "host" => "hosts", "sample" => "samples" }.freeze
 
     helpers do
       def csrf_token
@@ -55,6 +56,11 @@ module Collector
         host = row["blocked_key"] if row["blocked_key"] =~ Rules::HOST_RE
         opts["host"] = host if host
         opts["sample"] = sample["sample"] if row["bucket"] == "unattributed_inline" && !sample["sample"].to_s.empty?
+        # type/directive classes only for non-CSP reports — a CSP directive
+        # ("script-src") is far too broad to mute wholesale from the GUI.
+        if row["type"] != "csp-violation" && !row["directive"].empty?
+          opts["type_directive"] = "#{row["type"]}/#{row["directive"]}"
+        end
         opts
       end
 

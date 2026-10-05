@@ -6,9 +6,11 @@ module Collector
   # Values originate from attacker-controlled reports; they are only ever
   # serialized via YAML.dump of plain strings — never appended as text.
   class Rules
-    KINDS = %w[schemes hosts host_suffixes url_prefixes samples].freeze
-    GUI_KINDS = %w[schemes hosts samples].freeze # host_suffixes/url_prefixes are hand-edit only
+    KINDS = %w[type_directives schemes hosts host_suffixes url_prefixes samples].freeze
+    GUI_KINDS = %w[type_directives schemes hosts samples].freeze # host_suffixes/url_prefixes are hand-edit only
     SCHEME_RE = /\A[a-z][a-z0-9+.\-]{0,63}:\z/
+    # "network-error/abandoned" — report type, "/", directive as stored.
+    TYPE_DIRECTIVE_RE = %r{\A[a-z0-9.\-]{1,64}/[[:graph:]]{1,64}\z}
     HOST_RE = /\A(?=.{1,253}\z)([a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?)(\.[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?)*\z/i
     SAMPLE_MAX = 40
 
@@ -30,6 +32,10 @@ module Collector
     # Returns a rule id ("hosts:evil.example") or nil.
     def match(norm)
       d = data
+      unless norm[:directive].empty?
+        td = "#{norm[:type]}/#{norm[:directive]}"
+        return "type_directives:#{td}" if d["type_directives"].include?(td)
+      end
       d["schemes"].each do |s|
         # Browsers redact extension URLs to the bare scheme name (no colon).
         bare = s.chomp(":")
@@ -66,6 +72,8 @@ module Collector
     def validate!(kind, value)
       value = value.to_s
       case kind
+      when "type_directives"
+        raise InvalidRule, "not type/directive" unless value.match?(TYPE_DIRECTIVE_RE)
       when "schemes"
         raise InvalidRule, "not a scheme" unless value.match?(SCHEME_RE)
       when "hosts", "host_suffixes"

@@ -1,4 +1,9 @@
 ---
+type_directives:
+- network-error/abandoned
+- deprecation/InstallTriggerDeprecated
+- deprecation/MozfullscreenchangeDeprecatedPrefix
+- deprecation/MozfullscreenerrorDeprecatedPrefix
 schemes:
 - 'chrome-extension:'
 - 'moz-extension:'
