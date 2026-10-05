@@ -37,8 +37,12 @@ module Collector
     end
   end
 
+  def self.metrics
+    @metrics ||= Metrics.new
+  end
+
   def self.reset!
-    @config = @store = @rules = nil
+    @config = @store = @rules = @metrics = nil
   end
 end
 
@@ -47,4 +51,6 @@ require_relative "collector/rules"
 require_relative "collector/ingest"
 require_relative "collector/filter"
 require_relative "collector/ingest_app"
+require_relative "collector/metrics"
+require_relative "collector/metrics_app"
 require_relative "collector/gui"

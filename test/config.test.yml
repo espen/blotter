@@ -18,3 +18,4 @@ smtp:
 title: example
 prune_days: 90
 gui_password: test-gui-password
+metrics_password: test-metrics-password

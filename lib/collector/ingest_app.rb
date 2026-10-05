@@ -21,9 +21,11 @@ module Collector
       "access-control-max-age" => "86400"
     }.freeze
 
-    def initialize(store: Collector.store, rules: Collector.rules, config: Collector.config)
+    def initialize(store: Collector.store, rules: Collector.rules, config: Collector.config,
+                   metrics: Collector.metrics)
       @store = store
       @rules = rules
+      @metrics = metrics
       @own_host_suffixes = config.fetch("own_host_suffixes")
       @policy_directives = config.fetch("policy_directives")
     end
@@ -45,19 +47,22 @@ module Collector
     private
 
     def process(norm)
+      @metrics.received!
       verdict, detail = Filter.evaluate(
         norm, rules: @rules,
         own_host_suffixes: @own_host_suffixes, policy_directives: @policy_directives
       )
       if verdict == :drop
         @store.rule_hit(detail)
+        @metrics.dropped!(detail)
       else
         # Unattributed inline dedupes on the script sample — distinct injected
         # scripts must not collapse into one "inline" row per page.
         if detail == "unattributed_inline" && !norm[:sample].empty?
           norm = norm.merge(blocked_key: "inline:#{norm[:sample]}")
         end
-        @store.record(norm.merge(bucket: detail))
+        norm = norm.merge(bucket: detail)
+        @store.record(norm) == :overflow ? @metrics.overflow! : @metrics.recorded!(norm)
       end
     end
 

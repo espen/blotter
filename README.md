@@ -138,6 +138,7 @@ rollout exists to collect.
 | `max_new_keys_per_day` | Flood cap: new dedupe keys per day before overflow (500 is generous). |
 | `max_rows` | Hard cap on stored rows. |
 | `session_secret` | GUI cookie secret — `bin/setup` generates one. |
+| `metrics_password` | Optional: enables a Prometheus endpoint at `/metrics` (basic auth, any username). Unset = not mounted, nothing exported. See below. |
 | `digest.from` / `digest.to` / `digest.max_new_keys` | Digest sender, recipient, and how many new keys one email lists. |
 | `smtp.*` | SMTP relay for the digest (host, port, optional starttls/user/password). |
 | `title` | Shown in the GUI header and page title. |
@@ -197,6 +198,39 @@ Rate limiting: stock Caddy has no per-IP rate limiter (that's a plugin). At
 typical volumes you don't need one — the body cap plus the new-key flood cap
 bound the damage. Add the plugin if your threat model says otherwise.
 
+## Prometheus metrics (optional)
+
+The digest only fires on *new* keys, so it is deliberately blind to volume
+changes on known ones — a surge in an existing NEL `tcp.timed_out` key (an
+outage signal) produces no email. If you already run Prometheus/Grafana,
+Blotter can cover that half: set `metrics_password` in config.yml and a
+`/metrics` endpoint appears (HTTP basic auth, any username; unset means not
+mounted and nothing counted into it is exported).
+
+```yaml
+scrape_configs:
+  - job_name: blotter
+    scheme: https
+    basic_auth: { username: prom, password: <metrics_password> }
+    static_configs: [{ targets: ["csp.example.com"] }]
+```
+
+Exported: counters `blotter_reports_received_total`,
+`blotter_reports_dropped_total{class=…}` (rule class only, never values),
+`blotter_reports_recorded_total{type=…,bucket=…,disposition=…}`,
+`blotter_reports_overflow_total`, and gauges `blotter_db_rows` /
+`blotter_new_keys_today`. Label values are bounded — report types outside
+the known Reporting API set collapse into `type="other"`, and nothing
+attacker-controlled (hosts, URLs, samples) ever becomes a label — so a
+scanner can't inflate your Prometheus cardinality. Counters are in-process
+and reset on restart, which `rate()` handles.
+
+Alert ideas: a surge
+(`rate(blotter_reports_recorded_total{type="network-error"}[10m])` above
+baseline), a flatline (`increase(blotter_reports_received_total[2d]) == 0`
+usually means someone broke the reporting headers, not a clean web), and
+`blotter_reports_overflow_total` increasing (flood cap engaged).
+
 ## Security model
 
 - `/csp` is public, unauthenticated (browsers can't send credentials), and
@@ -208,6 +242,9 @@ bound the damage. Add the plugin if your threat model says otherwise.
   re-extracted server-side and shape-validated).
 - The rules file is written via `YAML.dump` of plain strings with flock +
   atomic rename, loaded with `safe_load` (no aliases), mode 0600.
+- `/metrics`, when enabled, sits behind its own basic-auth password and
+  exports only counts with bounded, app-controlled label values — no hosts,
+  URLs or samples.
 - The collector going down cannot affect your site — reports are
   fire-and-forget from browsers.
 

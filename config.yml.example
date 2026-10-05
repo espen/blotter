@@ -44,6 +44,10 @@ session_secret: CHANGE-ME
 # random value. If empty, /admin is not mounted at all. HTTPS only.
 gui_password: CHANGE-ME-PASSWORD
 
+# Optional: Prometheus scrape endpoint at /metrics (HTTP basic auth, any
+# username). Unset or empty = not mounted at all, and nothing is exported.
+# metrics_password: CHANGE-ME-METRICS-PASSWORD
+
 # Daily digest (plain text only)
 digest:
   from: blotter@example.org

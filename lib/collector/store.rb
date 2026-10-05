@@ -128,6 +128,14 @@ module Collector
       SQL
     end
 
+    # For /metrics: current table size and today's new-key count. Gauges, not
+    # counters — both legitimately go down (prune, deletes, day rollover).
+    def gauges
+      @mutex.synchronize do
+        { rows: total_rows, new_keys_today: new_keys_today(Time.now.utc.iso8601) }
+      end
+    end
+
     def prune!(days: 90)
       cutoff = (Time.now.utc - days * 86_400).iso8601
       @db.execute("DELETE FROM reports WHERE last_seen < ?", [cutoff])
