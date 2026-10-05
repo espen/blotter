@@ -8,7 +8,7 @@ module Collector
   #   source_file:   query-stripped source file (csp)
   #   document_uri:  query-stripped document/page URL
   #   document_host: host of document_uri
-  #   disposition:   "enforce"/"report" (csp), "" for other types
+  #   disposition:   "enforce"/"report" (csp, permissions/document-policy), "" for other types
   #   sample:        script-sample (csp), truncated
   #   raw:           minimized report stored as the sample JSON
   module Ingest
@@ -63,6 +63,18 @@ module Collector
           document_uri: str(body["documentURL"]).empty? ? str(item["url"]) : str(body["documentURL"]),
           disposition: csp_disposition(body["disposition"]),
           sample: str(body["sample"])
+        )
+      elsif %w[permissions-policy-violation document-policy-violation].include?(type)
+        # Body carries the violated feature in featureId (policyId in older
+        # Chrome); nothing is "blocked" in the CSP sense, so blocked stays "".
+        build(
+          type: type,
+          directive: str(body["featureId"]).empty? ? str(body["policyId"]) : str(body["featureId"]),
+          blocked: "",
+          source_file: str(body["sourceFile"]),
+          document_uri: str(item["url"]),
+          disposition: csp_disposition(body["disposition"]),
+          sample: ""
         )
       else
         # Generic Reporting API types (network-error, deprecation, crash, ...)

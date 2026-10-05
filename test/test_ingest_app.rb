@@ -59,6 +59,29 @@ class TestIngestApp < Minitest::Test
     assert_equal "dns.name_not_resolved", row["directive"]
   end
 
+  def test_permissions_policy_report_keeps_feature_and_disposition
+    report = [{ "type" => "permissions-policy-violation", "url" => "https://ts.example.com/manage",
+                "body" => { "featureId" => "payment", "disposition" => "enforce",
+                            "sourceFile" => "https://ts.example.com/app.js?v=3" } }]
+    post "/csp", JSON.generate(report), "CONTENT_TYPE" => "application/reports+json"
+    row = @store.rows.first
+    assert_equal "permissions-policy-violation", row["type"]
+    assert_equal "payment", row["directive"]
+    assert_equal "enforce", row["disposition"]
+    assert_equal "", row["blocked_key"]
+    sample = JSON.parse(row["sample"])
+    assert_equal "https://ts.example.com/app.js", sample["source_file"]
+  end
+
+  def test_permissions_policy_report_falls_back_to_policy_id
+    report = [{ "type" => "permissions-policy-violation", "url" => "https://ts.example.com/manage",
+                "body" => { "policyId" => "geolocation", "disposition" => "report" } }]
+    post "/csp", JSON.generate(report), "CONTENT_TYPE" => "application/reports+json"
+    row = @store.rows.first
+    assert_equal "geolocation", row["directive"]
+    assert_equal "report", row["disposition"]
+  end
+
   def test_oversized_body_dropped
     post "/csp", "x" * (17 * 1024), "CONTENT_TYPE" => "application/csp-report"
     assert_equal 204, last_response.status
