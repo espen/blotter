@@ -82,6 +82,50 @@ class TestIngestApp < Minitest::Test
     assert_equal "report", row["disposition"]
   end
 
+  def test_crash_report_keeps_reason
+    report = [{ "type" => "crash", "url" => "https://ts.example.com/manage",
+                "body" => { "reason" => "oom" } }]
+    post "/csp", JSON.generate(report), "CONTENT_TYPE" => "application/reports+json"
+    row = @store.rows.first
+    assert_equal "crash", row["type"]
+    assert_equal "oom", row["directive"]
+  end
+
+  def test_integrity_violation_keeps_blocked_url_and_report_only
+    report = [{ "type" => "integrity-violation", "url" => "https://ts.example.com/manage",
+                "body" => { "documentURL" => "https://ts.example.com/manage",
+                            "blockedURL" => "https://cdn.example.org/lib.js?v=9",
+                            "destination" => "script", "reportOnly" => true } }]
+    post "/csp", JSON.generate(report), "CONTENT_TYPE" => "application/reports+json"
+    row = @store.rows.first
+    assert_equal "script", row["directive"]
+    assert_equal "cdn.example.org", row["blocked_key"]
+    assert_equal "report", row["disposition"]
+  end
+
+  def test_deprecation_keeps_source_file_and_message
+    report = [{ "type" => "deprecation", "url" => "https://ts.example.com/manage",
+                "body" => { "id" => "UnloadHandler", "message" => "Unload event listeners are deprecated",
+                            "sourceFile" => "https://ts.example.com/app.js?v=3" } }]
+    post "/csp", JSON.generate(report), "CONTENT_TYPE" => "application/reports+json"
+    row = @store.rows.first
+    assert_equal "UnloadHandler", row["directive"]
+    sample = JSON.parse(row["sample"])
+    assert_equal "https://ts.example.com/app.js", sample["source_file"]
+    assert_equal "Unload event listeners are deprecated", sample["sample"]
+  end
+
+  def test_coep_keeps_blocked_url_and_reporting_disposition
+    report = [{ "type" => "coep", "url" => "https://ts.example.com/manage",
+                "body" => { "type" => "corp", "blockedURL" => "https://images.example.org/a.png",
+                            "disposition" => "reporting" } }]
+    post "/csp", JSON.generate(report), "CONTENT_TYPE" => "application/reports+json"
+    row = @store.rows.first
+    assert_equal "corp", row["directive"]
+    assert_equal "images.example.org", row["blocked_key"]
+    assert_equal "report", row["disposition"]
+  end
+
   def test_oversized_body_dropped
     post "/csp", "x" * (17 * 1024), "CONTENT_TYPE" => "application/csp-report"
     assert_equal 204, last_response.status

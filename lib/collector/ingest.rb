@@ -8,7 +8,7 @@ module Collector
   #   source_file:   query-stripped source file (csp)
   #   document_uri:  query-stripped document/page URL
   #   document_host: host of document_uri
-  #   disposition:   "enforce"/"report" (csp, permissions/document-policy), "" for other types
+  #   disposition:   "enforce"/"report" for types that have one, "" otherwise
   #   sample:        script-sample (csp), truncated
   #   raw:           minimized report stored as the sample JSON
   module Ingest
@@ -42,7 +42,7 @@ module Collector
         blocked: str(r["blocked-uri"]),
         source_file: str(r["source-file"]),
         document_uri: str(r["document-uri"]),
-        disposition: csp_disposition(r["disposition"]),
+        disposition: disposition(r["disposition"]),
         sample: str(r["script-sample"])
       )
     end
@@ -54,17 +54,18 @@ module Collector
       type = str(item["type"])
       return nil if type.empty?
 
-      if type == "csp-violation"
+      case type
+      when "csp-violation"
         build(
           type: type,
           directive: str(body["effectiveDirective"]).split.first.to_s,
           blocked: str(body["blockedURL"]),
           source_file: str(body["sourceFile"]),
           document_uri: str(body["documentURL"]).empty? ? str(item["url"]) : str(body["documentURL"]),
-          disposition: csp_disposition(body["disposition"]),
+          disposition: disposition(body["disposition"]),
           sample: str(body["sample"])
         )
-      elsif %w[permissions-policy-violation document-policy-violation].include?(type)
+      when "permissions-policy-violation", "document-policy-violation"
         # Body carries the violated feature in featureId (policyId in older
         # Chrome); nothing is "blocked" in the CSP sense, so blocked stays "".
         build(
@@ -73,11 +74,58 @@ module Collector
           blocked: "",
           source_file: str(body["sourceFile"]),
           document_uri: str(item["url"]),
-          disposition: csp_disposition(body["disposition"]),
+          disposition: disposition(body["disposition"]),
+          sample: ""
+        )
+      when "crash"
+        # Body has no type/id; the cause is in reason ("oom", "unresponsive").
+        build(
+          type: type,
+          directive: str(body["reason"]),
+          blocked: "",
+          source_file: "",
+          document_uri: str(item["url"]),
+          disposition: "",
+          sample: ""
+        )
+      when "integrity-violation"
+        # Integrity-policy reports: blockedURL is the resource that failed the
+        # check; destination ("script", ...) is the closest thing to a directive.
+        build(
+          type: type,
+          directive: str(body["destination"]),
+          blocked: str(body["blockedURL"]),
+          source_file: "",
+          document_uri: str(body["documentURL"]).empty? ? str(item["url"]) : str(body["documentURL"]),
+          disposition: body["reportOnly"] == true ? "report" : "enforce",
+          sample: ""
+        )
+      when "deprecation", "intervention"
+        # sourceFile locates the offending call; message explains it (stored as
+        # the sample so it survives into the raw JSON).
+        build(
+          type: type,
+          directive: str(body["id"]),
+          blocked: "",
+          source_file: str(body["sourceFile"]),
+          document_uri: str(item["url"]),
+          disposition: "",
+          sample: str(body["message"])
+        )
+      when "coep", "coop"
+        # COEP's blockedURL is the cross-origin resource that got blocked; COOP
+        # has no blocked resource. Both spell report-only as "reporting".
+        build(
+          type: type,
+          directive: str(body["type"]),
+          blocked: str(body["blockedURL"]),
+          source_file: str(body["sourceFile"]),
+          document_uri: str(item["url"]),
+          disposition: disposition(body["disposition"]),
           sample: ""
         )
       else
-        # Generic Reporting API types (network-error, deprecation, crash, ...)
+        # Generic Reporting API types (network-error and anything unknown)
         build(
           type: type,
           directive: str(body["type"]).empty? ? str(body["id"]) : str(body["type"]),
@@ -90,10 +138,11 @@ module Collector
       end
     end
 
-    # Absent disposition means an old browser enforcing — "report" is the only
-    # value that changes what a violation means (hypothetical, not a real block).
-    def csp_disposition(v)
-      v == "report" ? "report" : "enforce"
+    # Absent disposition means an old browser enforcing — report-only is the
+    # only value that changes what a violation means (hypothetical, not a real
+    # block). CSP and permissions-policy spell it "report", COEP/COOP "reporting".
+    def disposition(v)
+      %w[report reporting].include?(v) ? "report" : "enforce"
     end
 
     def build(type:, directive:, blocked:, source_file:, document_uri:, disposition:, sample:)
