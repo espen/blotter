@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- A CSP collector's homepage should pass its own exam: everything is same-origin, nothing inline. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; script-src 'self'; font-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
+<title>Blotter · a quiet log of your site's CSP violations</title>
+<meta name="description" content="A small self-hosted collector for CSP and Reporting API reports. Filters known noise, dedupes the rest into counts, and emails you only when something new appears.">
+<meta property="og:title" content="Blotter">
+<meta property="og:description" content="A quiet log of your site's CSP violations. Self-hosted, plain Ruby, SQLite.">
+<meta property="og:type" content="website">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preload" href="fonts/instrument-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<header class="top">
+  <a class="brand" href="./" aria-label="Blotter">
+    <svg class="mark" viewBox="0 0 72 72" aria-hidden="true">
+      <path class="ink" d="M10 36 L62 36 L62 41 C50 53 22 53 10 41 Z"/>
+      <rect class="ink" x="31" y="24" width="10" height="10" rx="2"/>
+      <circle class="ink" cx="36" cy="19" r="6"/>
+      <path class="line" d="M13 58 C25 65 47 65 59 58"/>
+    </svg>
+    <span>Blotter</span>
+  </a>
+  <nav>
+    <a href="#how">How it works</a>
+    <a href="#start">Quickstart</a>
+    <a href="https://github.com/espen/blotter">GitHub</a>
+  </nav>
+</header>
+
+<main>
+
+<section class="hero">
+  <h1>A <span class="quiet">quiet<svg viewBox="0 0 100 12" preserveAspectRatio="none" aria-hidden="true"><path d="M3 3 C28 11 72 11 97 3" vector-effect="non-scaling-stroke"/></svg></span> log of your site's CSP&nbsp;violations.</h1>
+  <div class="lede">
+    <p>Blotter is a small self-hosted collector for CSP reports, and any other Reporting API type. It drops the noise it recognises, counts everything else, and emails you <strong>only when something new appears</strong>.</p>
+    <p class="cta">
+      <a class="button" href="#start">Quickstart</a>
+      <a class="plain" href="https://github.com/espen/blotter">Source on GitHub</a>
+    </p>
+  </div>
+</section>
+
+<figure class="demo" id="demo">
+  <div class="incoming" aria-hidden="true">
+    <span class="label">Incoming</span>
+    <span class="mono" id="incoming">script-src · chrome-extension://kbfnbcaeplbc…</span>
+    <span class="verdict" id="verdict">dropped · scheme</span>
+  </div>
+  <table class="reports">
+    <thead>
+      <tr><th class="d"></th><th>Directive</th><th>Blocked</th><th class="num">Count</th></tr>
+    </thead>
+    <tbody id="rows">
+      <tr data-key="inline"><td class="d"><i class="dot inline"></i></td><td class="mono">script-src-elem</td><td class="mono">inline · <span class="sample">(function(){var s=document.createEl…</span><span class="tag">unattributed</span></td><td class="num">3</td></tr>
+      <tr data-key="img"><td class="d"><i class="dot quiet"></i></td><td class="mono">img-src</td><td class="mono">https://images.old-cdn.example</td><td class="num">1,208</td></tr>
+      <tr data-key="script"><td class="d"><i class="dot quiet"></i></td><td class="mono">script-src</td><td class="mono">https://widgets.example/embed.js</td><td class="num">412</td></tr>
+      <tr data-key="font"><td class="d"><i class="dot quiet"></i></td><td class="mono">font-src</td><td class="mono">https://fonts.example</td><td class="num">87</td></tr>
+      <tr data-key="connect"><td class="d"><i class="dot quiet"></i></td><td class="mono">connect-src</td><td class="mono">https://api.example<span class="tag">report-only</span></td><td class="num">54</td></tr>
+    </tbody>
+  </table>
+  <dl class="tally">
+    <div><dt>Received</dt><dd id="t-recv">1,764</dd></div>
+    <div><dt>Dropped as noise</dt><dd id="t-drop">0</dd></div>
+    <div><dt>Keys</dt><dd id="t-keys">5</dd></div>
+    <div><dt>Emails sent</dt><dd id="t-mail">0</dd></div>
+  </dl>
+  <figcaption>A simulation of the idea, not live data. Extensions and scanners are dropped at the door, repeats only bump a count, and a new key is the one thing that earns an email.</figcaption>
+</figure>
+
+<section class="row" id="how">
+  <h2 class="label">How it works</h2>
+  <div class="body">
+    <p class="big">Real signal repeats. Noise is endless, but recognisable.</p>
+    <ol class="steps">
+      <li>
+        <h3>Filter at the door</h3>
+        <p>Extension schemes, known injector hosts, reports about documents that aren't yours, and directives your policy never emits are dropped at ingest. Every rule keeps a drop counter, so you can see what it eats.</p>
+      </li>
+      <li>
+        <h3>Count, don't store</h3>
+        <p>Everything else is deduped into keys with counts. Millions of reports stay thousands of rows in one SQLite file.</p>
+      </li>
+      <li>
+        <h3>Keep what looks like an attack</h3>
+        <p>Inline or eval violations with no source file are exactly what an injected script looks like. They are never dropped: they get their own bucket, deduped per script sample, and go first in the digest.</p>
+      </li>
+      <li>
+        <h3>Email on new, and only on new</h3>
+        <p>A daily plain-text digest goes out when a key appears that you haven't seen before. Otherwise it stays silent.</p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<section class="row">
+  <h2 class="label">Most days</h2>
+  <div class="body">
+    <p class="big">No email. Nothing to do.</p>
+    <div class="days" role="img" aria-label="Thirty dots for thirty days; one is highlighted">
+      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      <i></i><i></i><i></i><i></i><i></i><i></i><i class="on"></i><i></i><i></i><i></i>
+      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    </div>
+    <p class="note">An illustration of a month: thirty digest runs, one email.</p>
+  </div>
+</section>
+
+<section class="row">
+  <h2 class="label">Ignore rules</h2>
+  <div class="body">
+    <p class="big">A click can't hide an attack.</p>
+    <p>Ignore rules are exact-match only: one host, one scheme, one sample. They can only be created from a report that's already stored, never typed in, so the GUI can't produce a rule broad enough to swallow something real. The broader kinds, host suffixes and URL prefixes, are edited by hand in one YAML file. There is no regex anywhere.</p>
+  </div>
+</section>
+
+<section class="row">
+  <h2 class="label">Small on purpose</h2>
+  <div class="body">
+    <dl class="facts">
+      <div><dt>~1,000 lines</dt><dd>Tests included. One person can hold the whole thing in their head.</dd></div>
+      <div><dt>Plain Ruby</dt><dd>A Rack ingest endpoint, a Sinatra GUI, SQLite, and one YAML rules file.</dd></div>
+      <div><dt>Nothing external</dt><dd>No JS build step, no framework, no third-party requests. Fonts are self-hosted.</dd></div>
+      <div><dt>Private by default</dt><dd>Query strings and fragments are stripped, client IPs are never stored, and everything prunes after 90 days.</dd></div>
+      <div><dt>Flood-safe</dt><dd>A 256KB body cap, a per-POST report cap, a daily cap on new keys, and a hard cap on table size.</dd></div>
+      <div><dt>Can't hurt your site</dt><dd>Reports are fire-and-forget from the browser. If the collector is down, nobody notices but you.</dd></div>
+    </dl>
+  </div>
+</section>
+
+<section class="row" id="start">
+  <h2 class="label">Quickstart</h2>
+  <div class="body">
+    <p>Requires Ruby 3.2 or newer.</p>
+<pre><code>git clone https://github.com/espen/blotter.git &amp;&amp; cd blotter
+bin/setup                   <span class="c"># bundle install, config.yml with a fresh secret</span>
+$EDITOR config.yml
+bundle exec puma -p 9292    <span class="c"># POST /csp is public, the GUI is at /admin</span></code></pre>
+    <p>Then point your site at it:</p>
+<pre><code>Content-Security-Policy: …; report-uri https://csp.example.com/csp
+Reporting-Endpoints: csp-endpoint="https://csp.example.com/csp"
+Content-Security-Policy: …; report-to csp-endpoint</code></pre>
+    <p>Add <code>'report-sample'</code> to <code>script-src</code> so inline violations carry the first 40 characters of the script. Prefer containers? A <code>Dockerfile</code> and <code>compose.yml</code> are included, alongside systemd units and a Caddy example.</p>
+  </div>
+</section>
+
+<section class="row">
+  <h2 class="label">Also</h2>
+  <div class="body">
+    <ul class="also">
+      <li><a href="https://github.com/espen/blotter#enabling-the-other-report-types-nel-deprecation-crash">NEL, deprecation and crash reports</a><span>Any Reporting API type lands in the same table.</span></li>
+      <li><a href="https://github.com/espen/blotter#tightening-your-policy-report-only-rollouts">Report-Only rollouts</a><span>See what a stricter policy would break before you enforce it.</span></li>
+      <li><a href="https://github.com/espen/blotter#prometheus-metrics-optional">Prometheus metrics</a><span>Opt-in, for alerting on volume changes the digest ignores.</span></li>
+      <li><a href="https://github.com/espen/blotter#security-model">Security model</a><span>How a public, unauthenticated endpoint treats every byte as hostile.</span></li>
+    </ul>
+  </div>
+</section>
+
+</main>
+
+<footer class="row">
+  <span class="label">Colophon</span>
+  <div class="body">
+    <p><a href="https://github.com/espen/blotter/blob/master/LICENSE">MIT licensed</a>. Set in Instrument Sans and Fragment Mono, both <a href="fonts/OFL.txt">SIL OFL 1.1</a>. This page makes no third-party requests and ships its own strict Content-Security-Policy.</p>
+  </div>
+</footer>
+
+<script src="site.js" defer></script>
+</body>
+</html>
