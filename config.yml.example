@@ -48,11 +48,14 @@ gui_password: CHANGE-ME-PASSWORD
 # username). Unset or empty = not mounted at all, and nothing is exported.
 # metrics_password: CHANGE-ME-METRICS-PASSWORD
 
-# Daily digest (plain text only)
+# Digest (plain text only)
 digest:
   from: blotter@example.org
   to: admin@example.com
   max_new_keys: 20
+  # How many days back each run looks for new keys. Must match how often the
+  # digest is scheduled: 1 for a daily run (the default), 7 for a weekly one.
+  # window_days: 1
   # Optional: public address of the GUI, linked at the end of the digest.
   # gui_url: https://csp.example.com/admin/
 smtp:
