@@ -140,6 +140,7 @@ rollout exists to collect.
 | `session_secret` | GUI cookie secret — `bin/setup` generates one. |
 | `metrics_password` | Optional: enables a Prometheus endpoint at `/metrics` (basic auth, any username). Unset = not mounted, nothing exported. See below. |
 | `digest.from` / `digest.to` / `digest.max_new_keys` | Digest sender, recipient, and how many new keys one email lists. |
+| `digest.gui_url` | Optional: public address of the GUI (e.g. `https://csp.example.com/admin/`). When set, the digest ends with a link to it. |
 | `smtp.*` | SMTP relay for the digest (host, port, optional starttls/user/password). |
 | `title` | Shown in the GUI header and page title. |
 | `prune_days` | Retention — rows unseen this long are deleted by the digest run. |

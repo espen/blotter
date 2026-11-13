@@ -20,12 +20,18 @@ max = digest.fetch("max_new_keys")
 lines = rows.first(max).map do |r|
   badge = r["bucket"] == "unattributed_inline" ? " [UNATTRIBUTED INLINE]" : ""
   badge += " [REPORT-ONLY]" if r["disposition"] == "report"
-  "#{r["count"]}x #{r["type"]} #{r["directive"]} #{r["blocked_key"]} on #{r["document_host"]}#{badge}"
+  # A blocked value that only repeats the document host (every NEL row) says
+  # nothing the "on <host>" part doesn't — same rule as "self" in the GUI.
+  blocked = r["blocked_key"] == r["document_host"] ? "" : r["blocked_key"]
+  on = r["document_host"].to_s.empty? ? "" : "on #{r["document_host"]}"
+  ["#{r["count"]}x", r["type"], r["directive"], blocked, on].reject { |part| part.to_s.empty? }.join(" ") + badge
 end
 lines << "... and #{rows.size - max} more" if rows.size > max
 
 from = digest.fetch("from")
 to = digest.fetch("to")
+# Optional: where the GUI lives, so the mail can link to it.
+review = ["Review in the Blotter GUI: ignore the noise, dig into the samples.", digest["gui_url"]]
 message = <<~MAIL
   From: Blotter <#{from}>
   To: #{to}
@@ -38,7 +44,7 @@ message = <<~MAIL
 
   #{lines.join("\n")}
 
-  Review in the Blotter GUI: ignore the noise, dig into the samples.
+  #{review.compact.join("\n")}
 MAIL
 
 smtp_cfg = cfg.fetch("smtp")

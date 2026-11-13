@@ -53,6 +53,8 @@ digest:
   from: blotter@example.org
   to: admin@example.com
   max_new_keys: 20
+  # Optional: public address of the GUI, linked at the end of the digest.
+  # gui_url: https://csp.example.com/admin/
 smtp:
   host: 127.0.0.1
   port: 2525
