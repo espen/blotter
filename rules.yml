@@ -1,9 +1,15 @@
 ---
 type_directives:
 - network-error/abandoned
+- network-error/unknown
+- network-error/dns.address_changed
+- network-error/tcp.aborted
+- network-error/tcp.address_invalid
 - deprecation/InstallTriggerDeprecated
 - deprecation/MozfullscreenchangeDeprecatedPrefix
 - deprecation/MozfullscreenerrorDeprecatedPrefix
+- deprecation/AttributionReporting
+- deprecation/FencedFrame
 schemes:
 - 'chrome-extension:'
 - 'moz-extension:'
@@ -11,6 +17,17 @@ schemes:
 - 'safari-web-extension:'
 - 'resource:'
 - 'file:'
+- 'about:'
+- 'ms-browser-extension:'
+- 'jam-extension:'
+- 'webviewprogressproxy:'
+- 'wvjbscheme:'
+- 'mxaddon-pkg:'
+- 'tmtbff:'
+- 'mbinit:'
+- 'symres:'
+- 'jar:'
+- 'asset:'
 hosts:
 - translate.googleapis.com
 - translate.google.com
