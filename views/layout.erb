@@ -39,6 +39,10 @@
   th.num, td.num { text-align: right; padding-right: 0; }
   td { padding: 0.7rem 1rem 0.7rem 0; border-bottom: 1px solid var(--hairline); vertical-align: baseline; }
   td.num { font-variant-numeric: tabular-nums; font-weight: 500; }
+  /* Fixed layout: with auto layout one long unbreakable directive name
+     squeezed the blocked column down to a few characters per line. */
+  table.reports { table-layout: fixed; }
+  table.reports td { word-break: normal; overflow-wrap: anywhere; }
   tr.clickable { cursor: pointer; }
   tr.clickable:hover td { background: var(--hover); }
   code, .mono { font: 13px "Fragment Mono", monospace; word-break: break-all; }
@@ -54,7 +58,7 @@
   .filters { display: flex; gap: 1.75rem; align-items: baseline; margin-bottom: 1.25rem; font-size: 13px; flex-wrap: wrap; }
   .filters input[type=search] { border: none; border-bottom: 1px solid var(--hairline); background: none; font: inherit; padding: 0.2rem 0; width: 14rem; outline: none; border-radius: 0; }
   .filters input[type=search]:focus { border-color: var(--ink); }
-  .filters select { border: none; background: none; font: inherit; color: var(--muted); cursor: pointer; }
+  .filters select { border: none; background: none; font: inherit; color: var(--muted); cursor: pointer; max-width: 15rem; text-overflow: ellipsis; }
   .filters button { border: none; background: none; font: inherit; cursor: pointer; padding: 0; border-bottom: 1px solid var(--ink); }
   .filters a { color: var(--muted); text-decoration: none; font-size: 12.5px; }
   .filters .count { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }

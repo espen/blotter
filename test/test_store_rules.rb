@@ -26,7 +26,8 @@ class TestStore < Minitest::Test
 
   def test_rows_filtering
     @store.record(norm.merge(bucket: "normal"))
-    @store.record(norm(type: "network-error", directive: "dns.name_not_resolved", blocked_key: "cdn.other.example").merge(bucket: "normal"))
+    @store.record(norm(type: "network-error", directive: "dns.name_not_resolved", blocked_key: "cdn.other.example",
+                       raw: { "blocked" => "https://cdn.other.example/x.js" }).merge(bucket: "normal"))
     assert_equal 1, @store.rows(type: "network-error").size
     assert_equal 1, @store.rows(q: "evil").size
     assert_equal 2, @store.rows(q: "example").size
@@ -40,6 +41,16 @@ class TestStore < Minitest::Test
     assert_equal 2, @store.rows.size
     assert_equal 1, @store.rows(disposition: "report").size
     assert_equal %w[enforce report], @store.distinct("disposition")
+  end
+
+  def test_q_searches_directive_and_stored_report
+    @store.record(norm(type: "intervention", directive: "IgnoredEventCancel", blocked_key: "",
+                       raw: { "source_file" => "https://ts.example.com/assets/calendar_cable-abc.js" }).merge(bucket: "normal"))
+    @store.record(norm(blocked_key: "other.example", raw: {}).merge(bucket: "normal"))
+
+    assert_equal 1, @store.rows(q: "calendar_cable").size
+    assert_equal 1, @store.rows(q: "ignoredevent").size
+    assert_empty @store.rows(q: "nowhere")
   end
 
   def test_document_host_filter_matches_suffix

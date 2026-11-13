@@ -94,8 +94,11 @@ module Collector
         args << document_host << "%.#{escape_like(document_host)}"
       end
       if q && !q.empty?
-        where << "(blocked_key LIKE ? ESCAPE '\\' OR document_host LIKE ? ESCAPE '\\')"
-        args << "%#{escape_like(q)}%" << "%#{escape_like(q)}%"
+        # sample is the stored report JSON, so this also reaches what the table
+        # does not show: the source file, the full blocked URL, the page path.
+        cols = %w[blocked_key document_host directive sample]
+        where << "(#{cols.map { |c| "#{c} LIKE ? ESCAPE '\\'" }.join(" OR ")})"
+        args.concat(["%#{escape_like(q)}%"] * cols.size)
       end
       @db.execute("SELECT * FROM reports WHERE #{where.join(" AND ")} ORDER BY last_seen DESC LIMIT ?", args + [limit])
     end
