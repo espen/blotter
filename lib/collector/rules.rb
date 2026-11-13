@@ -42,12 +42,14 @@ module Collector
         return "schemes:#{s}" if norm[:blocked].start_with?(s) || norm[:source_file].start_with?(s) ||
                                  norm[:blocked] == bare || norm[:source_file] == bare
       end
+      # The injector is as often the script that caused a report (source_file,
+      # e.g. an antivirus main.js behind a deprecation) as the blocked resource.
+      hosts = [norm[:blocked_host], norm[:source_host]].compact.reject(&:empty?)
       d["hosts"].each do |h|
-        return "hosts:#{h}" if norm[:blocked_host] == h
+        return "hosts:#{h}" if hosts.include?(h)
       end
       d["host_suffixes"].each do |h|
-        bh = norm[:blocked_host]
-        return "host_suffixes:#{h}" if bh == h || bh.end_with?(".#{h}")
+        return "host_suffixes:#{h}" if hosts.any? { |x| x == h || x.end_with?(".#{h}") }
       end
       d["url_prefixes"].each do |p|
         return "url_prefixes:#{p}" if norm[:blocked].start_with?(p)

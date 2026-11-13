@@ -102,6 +102,18 @@ class TestRules < Minitest::Test
     assert_equal "hosts:noise.example", @rules.match(norm(blocked_host: "noise.example"))
   end
 
+  def test_host_rules_match_source_file_host
+    @rules.add("hosts", "noise.example")
+    File.write(@path, YAML.dump(@rules.data.merge("host_suffixes" => ["injector.example"])))
+    report = { type: "deprecation", directive: "UnloadHandler", blocked: "", blocked_host: "" }
+
+    assert_equal "hosts:noise.example", @rules.match(norm(report.merge(source_host: "noise.example")))
+    assert_equal "host_suffixes:injector.example",
+                 @rules.match(norm(report.merge(source_host: "gc.injector.example")))
+    assert_nil @rules.match(norm(report.merge(source_host: "notinjector.example")))
+    assert_nil @rules.match(norm(report.merge(source_host: "")))
+  end
+
   def test_add_and_match_type_directive
     @rules.add("type_directives", "network-error/abandoned")
     assert_equal "type_directives:network-error/abandoned",

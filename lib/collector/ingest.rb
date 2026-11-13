@@ -157,6 +157,7 @@ module Collector
         blocked_host: blocked_host,
         blocked_key: blocked_host.empty? ? blocked[0, 128] : blocked_host,
         source_file: source_file[0, 512],
+        source_host: host_of(source_file),
         document_uri: document_uri[0, 512],
         document_host: host_of(document_uri),
         disposition: disposition,
