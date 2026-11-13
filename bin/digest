@@ -2,6 +2,8 @@
 # Daily digest: prune old rows, mail only when new keys appeared.
 # Cron: 0 6 * * * cd /path/to/blotter && bundle exec bin/digest
 require "net/smtp"
+require "securerandom"
+require "time"
 require_relative "../lib/collector"
 
 store = Collector.store
@@ -28,6 +30,8 @@ message = <<~MAIL
   From: Blotter <#{from}>
   To: #{to}
   Subject: Blotter: #{rows.size} new report key(s)
+  Date: #{Time.now.rfc2822}
+  Message-ID: <#{SecureRandom.hex(16)}@#{from[/@([^>\s]+)/, 1] || "blotter.invalid"}>
   Content-Type: text/plain; charset=utf-8
 
   New violation keys in the last 24h (inline first, then by count):
