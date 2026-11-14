@@ -140,7 +140,6 @@ rollout exists to collect.
 | `session_secret` | GUI cookie secret — `bin/setup` generates one. |
 | `metrics_password` | Optional: enables a Prometheus endpoint at `/metrics` (basic auth, any username). Unset = not mounted, nothing exported. See below. |
 | `digest.from` / `digest.to` / `digest.max_new_keys` | Digest sender, recipient, and how many new keys one email lists. |
-| `digest.window_days` | How many days back each digest run looks for new keys (default `1`). Must match the schedule: for a weekly digest set `7` *and* change the cron/timer, or six days of keys are never mailed. |
 | `digest.gui_url` | Optional: public address of the GUI (e.g. `https://csp.example.com/admin/`). When set, the digest ends with a link to it. |
 | `smtp.*` | SMTP relay for the digest (host, port, optional starttls/user/password). |
 | `title` | Shown in the GUI header and page title. |
@@ -170,7 +169,10 @@ Example units and Caddy config are in `deploy/`. The shape:
    allowlist.
 3. **Digest**: `deploy/blotter-digest.{service,timer}` (or a cron line:
    `0 6 * * * cd /opt/blotter && bundle exec bin/digest`). Also does
-   the pruning.
+   the pruning. Each run mails the keys that are new since the last digest
+   that went out, so the schedule is the only cadence setting: change the
+   timer or cron line for a weekly digest, and a missed or failed run is
+   caught up by the next one.
 4. **Deploys**: after the initial install, `bin/deploy` does everything —
    `git pull`, `bundle install`, service restart (needs one sudoers line,
    documented in the script). From your laptop it's a single command:

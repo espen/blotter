@@ -24,6 +24,22 @@ class TestStore < Minitest::Test
     assert_equal 6, @store.rows.size # 5 real + 1 overflow bucket
   end
 
+  def test_new_since_is_half_open
+    @store.record(norm.merge(bucket: "normal"))
+    seen = Time.iso8601(@store.rows.first["first_seen"])
+    assert_equal 1, @store.new_since(seen).size
+    assert_equal 1, @store.new_since(seen, before: seen + 1).size
+    assert_empty @store.new_since(seen - 60, before: seen) # the next run's key
+    assert_empty @store.new_since(seen + 1)
+  end
+
+  def test_digest_mark_round_trips
+    assert_nil @store.digest_sent_until
+    @store.digest_sent_until = Time.utc(2026, 11, 12, 6, 0, 0)
+    @store.digest_sent_until = Time.utc(2026, 11, 13, 6, 0, 0)
+    assert_equal Time.utc(2026, 11, 13, 6, 0, 0), @store.digest_sent_until
+  end
+
   def test_rows_filtering
     @store.record(norm.merge(bucket: "normal"))
     @store.record(norm(type: "network-error", directive: "dns.name_not_resolved", blocked_key: "cdn.other.example",

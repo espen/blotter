@@ -2,7 +2,8 @@ require "fileutils"
 require "sqlite3"
 
 module Collector
-  # Deduped report rows + rule hit counters + daily new-key cap state.
+  # Deduped report rows + rule hit counters + daily new-key cap state + the
+  # digest's high-water mark.
   # Two processes (ingest + GUI) share the file; WAL handles that.
   class Store
     OVERFLOW_KEY = { type: "overflow", directive: "", blocked_key: "", document_host: "", bucket: "overflow", disposition: "" }.freeze
@@ -32,6 +33,10 @@ module Collector
       CREATE TABLE IF NOT EXISTS daily_new_keys (
         day TEXT PRIMARY KEY,
         count INTEGER NOT NULL DEFAULT 0
+      );
+      CREATE TABLE IF NOT EXISTS meta (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
       );
     SQL
 
@@ -117,10 +122,31 @@ module Collector
       @db.execute("DELETE FROM reports WHERE id = ?", [Integer(id)])
     end
 
-    def new_since(time)
-      @db.execute(<<~SQL, [time.utc.iso8601])
-        SELECT * FROM reports WHERE first_seen >= ?
+    # Keys first seen in [time, before). The half-open range lets consecutive
+    # digest runs tile without skipping or repeating a key.
+    def new_since(time, before: nil)
+      where = ["first_seen >= ?"]
+      args = [time.utc.iso8601]
+      if before
+        where << "first_seen < ?"
+        args << before.utc.iso8601
+      end
+      @db.execute(<<~SQL, args)
+        SELECT * FROM reports WHERE #{where.join(" AND ")}
         ORDER BY CASE bucket WHEN 'unattributed_inline' THEN 0 ELSE 1 END, count DESC
+      SQL
+    end
+
+    # Up to when the digest has already mailed new keys; nil before the first run.
+    def digest_sent_until
+      value = @db.execute("SELECT value FROM meta WHERE key = 'digest_sent_until'").dig(0, "value")
+      value && Time.iso8601(value)
+    end
+
+    def digest_sent_until=(time)
+      @db.execute(<<~SQL, [time.utc.iso8601])
+        INSERT INTO meta (key, value) VALUES ('digest_sent_until', ?)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value
       SQL
     end
 
